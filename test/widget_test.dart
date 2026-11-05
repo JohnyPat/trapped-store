@@ -1,0 +1,95 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:trapped_store/models/app_user.dart';
+import 'package:trapped_store/models/product.dart';
+import 'package:trapped_store/utils/formatters.dart';
+import 'package:trapped_store/utils/validators.dart';
+
+void main() {
+  group('Validators', () {
+    test('rejects empty and malformed email addresses', () {
+      expect(Validators.email(''), isNotNull);
+      expect(Validators.email('not-an-email'), isNotNull);
+      expect(Validators.email('patrick@gmail.com'), isNull);
+    });
+
+    test('requires a password of at least six characters', () {
+      expect(Validators.password('123'), isNotNull);
+      expect(Validators.password('patty'), isNotNull);
+      expect(Validators.password('trapped'), isNull);
+    });
+
+    test('requires matching password confirmation', () {
+      expect(Validators.confirmPassword('secret1', 'secret2'), isNotNull);
+      expect(Validators.confirmPassword('secret1', 'secret1'), isNull);
+    });
+  });
+
+  group('Formatters', () {
+    test('formats PHP currency', () {
+      expect(Formatters.currency(1500), contains('PHP'));
+      expect(Formatters.currency(1500), contains('1,500.00'));
+    });
+
+    test('formats initials', () {
+      expect(Formatters.initials('John Patrick Cruz'), 'JC');
+      expect(Formatters.initials(''), 'TR');
+    });
+  });
+
+  group('AppUser', () {
+    test('parses Firebase values and defaults status to active', () {
+      final user = AppUser.fromMap('abc123', {
+        'uid': 'abc123',
+        'fullName': 'Juan Dela Cruz',
+        'email': 'juan@gmail.com',
+        'phone': '09123456789',
+        'lastLoginAt': 1793664000000,
+        'createdAt': 1793664000000,
+        'updatedAt': 1793664000000,
+      });
+
+      expect(user.uid, 'abc123');
+      expect(user.phone, '09123456789');
+      expect(user.status, 'active');
+      expect(user.isActive, isTrue);
+      expect(user.isDisabled, isFalse);
+      expect(user.lastLoginAt, isNotNull);
+
+      final payload = user.toMap();
+      expect(payload['uid'], 'abc123');
+      expect(payload['status'], 'active');
+      expect(payload.containsKey('password'), isFalse);
+    });
+
+    test('honours explicit disabled status from the database', () {
+      final user = AppUser.fromMap('abc123', {
+        'uid': 'abc123',
+        'fullName': 'Juan Dela Cruz',
+        'email': 'juan@gmail.com',
+        'phone': '09123456789',
+        'status': 'disabled',
+      });
+      expect(user.isActive, isFalse);
+      expect(user.isDisabled, isTrue);
+    });
+  });
+
+  group('Product', () {
+    test('parses Firebase values and defaults safely', () {
+      final product = Product.fromMap('test-piece', {
+        'name': 'TEST PIECE',
+        'price': 1299,
+        'stock': 4,
+        'sizes': ['S', 'M'],
+        'active': true,
+      });
+
+      expect(product.id, 'test-piece');
+      expect(product.price, 1299);
+      expect(product.stock, 4);
+      expect(product.sizes, ['S', 'M']);
+      expect(product.inStock, isTrue);
+      expect(product.active, isTrue);
+    });
+  });
+}

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "662516673071",
+    "firebase_url": "https://trapped-56f3e-default-rtdb.firebaseio.com",
+    "project_id": "trapped-56f3e",
+    "storage_bucket": "trapped-56f3e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662516673071:android:da9f1433239e6049f674da",
+        "android_client_info": {
+          "package_name": "com.wearetrapped.trapped_store"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6QacLZ19x1Kp2eSruNAvMjZ4B2WP6WZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

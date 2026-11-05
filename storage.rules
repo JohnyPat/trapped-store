@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Firebase Storage is not enabled on this project yet (Spark plan). These
+// rules are ready to deploy once Storage has been activated in the console.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/profile_{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

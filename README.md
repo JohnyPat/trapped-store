@@ -256,18 +256,40 @@ the statuses and restores stock.
 ## Tested
 
 - `flutter analyze`: clean
-- `flutter test`: 6/6 passing
+- `flutter test`: 8/8 passing
 - `flutter build web --release`: succeeds
 - `flutter build apk --debug`: succeeds (Android release build is blocked by
   Windows Application Control, see Android section)
+- `flutter build apk --release`: succeeds
 - Deployed site smoke-tested: guest browsing, sign-up, add to bag, cart,
   COD checkout, order creation, receipt/order details, cancellation with
   stock restoration
 
+## Submission Deliverables (ITE 7 M-Commerce)
+
+| Deliverable | File | Status |
+|---|---|---|
+| Running Flutter App | — | ✅ |
+| Firebase Connected App | — | ✅ (`trapped-56f3e`) |
+| Organized Folder Structure | `lib/` | ✅ |
+| Functional Login/Register | HOA02 | ✅ |
+| Product Listing / Details / Cart / Checkout | HOA03 | ✅ |
+| Admin Dashboard + CRUD | HOA04 | ✅ |
+| Fully Integrated System | HOA05 | ✅ |
+| Real-Time Synchronization | HOA05 | ✅ |
+| Debugging Report | `docs/HOA05_Debugging_Report.md` | ✅ |
+| QA Checklist | `docs/HOA06_QA_Checklist.md` | ✅ |
+| User Testing Results | `docs/HOA06_User_Testing_Results.md` | ✅ |
+| APK File | `build/app/outputs/` | ✅ |
+| Deployed Dashboard | hosting | ⚠️ web build ready, deploy pending |
+| Presentation Slides | `docs/HOA07_Presentation_Slides.md` | ✅ |
+| Reflection Answers | `docs/HOA07_Reflection_Answers.md` | ✅ |
+| GitHub Repository | — | ✅ local commit `9c6f741` |
+
 ## Notes
 
-- `settings/adminUid` is empty; no account has catalogue-write rights until
-  you set one in the console.
+- `settings/adminUid` must contain the admin's clean UID (no quotes/spaces) in
+  the Realtime Database for the Admin panel to open.
 - Test users created during verification were removed from Auth and RTDB.
 - The project is not a git repository; commit `database.rules.json`,
   `storage.rules`, `firebase.json` and `.firebaserc` if you move it to one.

@@ -41,6 +41,18 @@ class ProductImage extends StatelessWidget {
     if (imageUrl.isEmpty) {
       return Image.asset(fallback, fit: fit, width: width, height: height);
     }
+    // Bundled product images are served from the same Hosting filenames.
+    // Use them directly when offline/slow instead of downloading the network
+    // copy and repeatedly hitting the image decoder.
+    final localMatch = _bundledAssetFor(imageUrl);
+    if (localMatch != null) {
+      return Image.asset(
+        localMatch,
+        fit: fit,
+        width: width,
+        height: height,
+      );
+    }
     if (imageUrl.startsWith('asset:')) {
       return Image.asset(
         imageUrl.substring('asset:'.length),
@@ -72,6 +84,22 @@ class ProductImage extends StatelessWidget {
         height: height,
       ),
     );
+  }
+  /// Resolve a Hosting catalog URL (…/catalog/pistol-tee.png) to the
+  /// identical bundled asset (assets/images/products/pistol-tee.png).
+  String? _bundledAssetFor(String url) {
+    if (!url.startsWith('http')) return null;
+    try {
+      final segments = Uri.parse(url).pathSegments;
+      if (segments.isEmpty) return null;
+      final fileName = segments.last;
+      for (final asset in AppAssets.productImages.values) {
+        if (asset.endsWith('/$fileName')) return asset;
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
   }
 }
 

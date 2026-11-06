@@ -7,6 +7,7 @@ import '../../constants/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/app_snack.dart';
 import '../../utils/formatters.dart';
+import '../../utils/image_data.dart';
 import '../../utils/validators.dart';
 import '../../widgets/brand_header.dart';
 import '../../widgets/responsive.dart';
@@ -162,6 +163,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final profile = auth.profile;
     final name = profile?.displayName ?? auth.displayName;
     final image = profile?.profileImage ?? '';
+    final inlineImage = decodeImageDataUrl(image);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
@@ -213,14 +215,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ),
                               ),
                               clipBehavior: Clip.antiAlias,
-                              child: image.startsWith('http')
-                                  ? Image.network(
-                                      image,
+                              child: inlineImage != null
+                                  ? Image.memory(
+                                      inlineImage,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, _, _) =>
                                           _Initials(name: name),
                                     )
-                                  : _Initials(name: name),
+                                  : image.startsWith('http')
+                                      ? Image.network(
+                                          image,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) =>
+                                              _Initials(name: name),
+                                        )
+                                      : _Initials(name: name),
                             ),
                             Positioned(
                               right: -4,

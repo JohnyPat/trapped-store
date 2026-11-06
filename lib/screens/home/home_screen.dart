@@ -20,6 +20,7 @@ import '../../widgets/product_grid.dart';
 import '../../widgets/product_image.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/size_chart_table.dart';
 import '../../widgets/size_picker_sheet.dart';
 import '../../widgets/trapped_button.dart';
 import '../collection/collection_screen.dart';
@@ -96,6 +97,35 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openSearch() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+    );
+  }
+
+  void _openSizeGuide() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizeChartTable(),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TrappedButton(
+                  label: 'CLOSE',
+                  variant: TrappedButtonVariant.outline,
+                  height: 46,
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -292,6 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onShop: () => _openCollection(),
               onOrders: () => widget.onNavigate(2),
               onWishlist: () => widget.onNavigate(1),
+              onSizeGuide: _openSizeGuide,
             ),
           ],
         ),

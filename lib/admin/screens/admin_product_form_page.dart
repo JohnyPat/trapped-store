@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:trapped_store/shared/constants/admin_constants.dart';
 import 'package:trapped_store/services/storage_service.dart';
 import 'package:trapped_store/utils/app_snack.dart';
+import 'package:trapped_store/utils/image_data.dart';
 
 import '../models/admin_category_model.dart';
 import '../models/admin_product_model.dart';
@@ -194,8 +195,12 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
 
     setState(() => _uploading = true);
     try {
-      final file =
-          await _imagePicker.pickImage(source: source, imageQuality: 85);
+      final file = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
       if (file == null) {
         if (mounted) setState(() => _uploading = false);
         return;
@@ -227,6 +232,14 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
 
   /// Resolves either the bundled asset path or a network URL into a widget.
   Widget _imageFor(String path, {BoxFit fit = BoxFit.cover}) {
+    final inline = decodeImageDataUrl(path);
+    if (inline != null) {
+      return Image.memory(
+        inline,
+        fit: fit,
+        errorBuilder: (_, _, _) => _brokenImage(),
+      );
+    }
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return Image.network(
         path,

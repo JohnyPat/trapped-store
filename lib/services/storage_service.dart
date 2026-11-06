@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -23,9 +25,6 @@ class StorageService {
       file: file,
       path:
           'users/$uid/profile_${DateTime.now().millisecondsSinceEpoch}${_extension(file.name)}',
-      notEnabledMessage:
-          'Firebase Storage is not enabled for this project yet. '
-          'Open Firebase Console → Storage → Get started, then try again.',
       failureMessage: 'The profile picture could not be uploaded.',
     );
   }
@@ -43,9 +42,6 @@ class StorageService {
       file: file,
       path:
           'products/$productId/product_${DateTime.now().millisecondsSinceEpoch}${_extension(file.name)}',
-      notEnabledMessage:
-          'Firebase Storage is not enabled for this project yet. '
-          'Open Firebase Console → Storage → Get started, then try again.',
       failureMessage: 'The product photo could not be uploaded.',
     );
   }
@@ -54,20 +50,19 @@ class StorageService {
   Future<String> _uploadImage({
     required XFile file,
     required String path,
-    required String notEnabledMessage,
     required String failureMessage,
   }) async {
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      throw const StorageServiceException('The selected image is empty.');
+    }
+    if (bytes.length > 5 * 1024 * 1024) {
+      throw const StorageServiceException(
+        'Please choose an image smaller than 5 MB.',
+      );
+    }
+    final extension = _extension(file.name);
     try {
-      final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) {
-        throw const StorageServiceException('The selected image is empty.');
-      }
-      if (bytes.length > 5 * 1024 * 1024) {
-        throw const StorageServiceException(
-          'Please choose an image smaller than 5 MB.',
-        );
-      }
-      final extension = _extension(file.name);
       final ref = _storage.ref(path);
       final task = await ref.putData(
         bytes,
@@ -84,7 +79,10 @@ class StorageService {
           error.code == 'bucket-not-found' ||
           error.code == 'storage/unknown' ||
           error.message?.toLowerCase().contains('bucket') == true) {
-        throw StorageServiceException(notEnabledMessage);
+        // Storage is not provisioned (the project has no billing account).
+        // Fall back to a compressed inline image stored with the record so
+        // photo uploads still work for the demo.
+        return 'data:${_contentType(extension)};base64,${base64Encode(bytes)}';
       }
       if (error.code == 'unauthorized' ||
           error.code == 'permission-denied') {

@@ -13,11 +13,13 @@ import '../widgets/admin_sidebar.dart';
 import '../widgets/admin_appbar.dart';
 import '../widgets/dashboard_card.dart';
 import 'package:trapped_store/shared/constants/admin_constants.dart';
+import 'package:trapped_store/utils/formatters.dart';
 
 import 'admin_products_page.dart';
 import 'admin_categories_page.dart';
 import 'admin_orders_page.dart';
 import 'admin_customers_page.dart';
+import 'admin_payments_page.dart';
 import 'admin_reports_page.dart';
 import 'admin_site_page.dart';
 
@@ -134,11 +136,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  String _formatCurrency(double amount) => '\$${amount.toStringAsFixed(2)}';
+  String _formatCurrency(double amount) =>
+      Formatters.currency(amount);
+
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Select an admin section from the mobile drawer and close it.
+  void _selectIndex(int index) {
+    _scaffoldKey.currentState?.closeDrawer();
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       body: Row(
         children: [
           // Sidebar for desktop
@@ -155,11 +167,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ],
       ),
       appBar: AdminAppBar(
-        onMenuToggle: () {
-          // Toggle sidebar visibility on mobile
-          setState(() {});
-        },
-        onLogout: () {
+        onMenuToggle: () => _scaffoldKey.currentState?.openDrawer(),
+        onLogout: () async {
+          await AdminAuthService().signOut();
+          if (!context.mounted) return;
           // Navigate to login
           Navigator.of(context).pushNamedAndRemoveUntil(
               '/admin/login', (route) => false);
@@ -181,37 +192,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ListTile(
                     leading: const Icon(Icons.dashboard),
                     title: const Text('Dashboard'),
-                    onTap: () => setState(() => _selectedIndex = 0),
+                    onTap: () => _selectIndex(0),
                   ),
                   ListTile(
                     leading: const Icon(Icons.inventory),
                     title: const Text('Products'),
-                    onTap: () => setState(() => _selectedIndex = 1),
+                    onTap: () => _selectIndex(1),
                   ),
                   ListTile(
                     leading: const Icon(Icons.category),
                     title: const Text('Categories'),
-                    onTap: () => setState(() => _selectedIndex = 2),
+                    onTap: () => _selectIndex(2),
                   ),
                   ListTile(
                     leading: const Icon(Icons.shopping_bag),
                     title: const Text('Orders'),
-                    onTap: () => setState(() => _selectedIndex = 3),
+                    onTap: () => _selectIndex(3),
                   ),
                   ListTile(
                     leading: const Icon(Icons.people),
                     title: const Text('Customers'),
-                    onTap: () => setState(() => _selectedIndex = 4),
+                    onTap: () => _selectIndex(4),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.payments),
+                    title: const Text('Payments'),
+                    onTap: () => _selectIndex(5),
                   ),
                   ListTile(
                     leading: const Icon(Icons.bar_chart),
                     title: const Text('Reports'),
-                    onTap: () => setState(() => _selectedIndex = 5),
+                    onTap: () => _selectIndex(6),
                   ),
                   ListTile(
                     leading: const Icon(Icons.web_asset),
                     title: const Text('Site'),
-                    onTap: () => setState(() => _selectedIndex = 6),
+                    onTap: () => _selectIndex(7),
                   ),
                   const Divider(),
                   ListTile(
@@ -219,6 +235,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     title: const Text('Logout',
                         style: TextStyle(color: AdminColors.danger)),
                     onTap: () async {
+                      await AdminAuthService().signOut();
+                      if (!context.mounted) return;
                       await Navigator.of(context)
                           .pushNamedAndRemoveUntil(
                               '/admin/login', (route) => false);
@@ -236,6 +254,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 BottomNavigationBarItem(icon: Icon(Icons.category), label: ''),
                 BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: ''),
                 BottomNavigationBarItem(icon: Icon(Icons.people), label: ''),
+                BottomNavigationBarItem(icon: Icon(Icons.payments), label: ''),
                 BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ''),
                 BottomNavigationBarItem(icon: Icon(Icons.web_asset), label: ''),
               ],
@@ -264,8 +283,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 4:
         return const AdminCustomersPage();
       case 5:
-        return const AdminReportsPage();
+        return const AdminPaymentsPage();
       case 6:
+        return const AdminReportsPage();
+      case 7:
         return const AdminSitePage();
       case 0:
       default:
@@ -474,7 +495,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       title: Text(order.customerName),
                       subtitle: Text(
-                        '\$${order.subtotal.toStringAsFixed(0)} - ${order.statusLabel}',
+                      '${Formatters.currency(order.subtotal)} - ${order.statusLabel}',
                         style: TextStyle(color: AdminColors.muted),
                       ),
                       trailing: Container(
@@ -497,11 +518,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                       ),
                       onTap: () {
-                        // Navigate to order details
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Order details coming soon. Tap to view.')),
-                        );
+                        setState(() => _selectedIndex = 3);
                       },
                     );
                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:trapped_store/shared/constants/admin_constants.dart';
+import 'package:trapped_store/utils/formatters.dart';
 
 import '../models/admin_order_model.dart';
 import '../services/admin_order_service.dart';
@@ -16,7 +17,7 @@ class AdminReportsPage extends StatefulWidget {
 class _AdminReportsPageState extends State<AdminReportsPage> {
   final _orderService = AdminOrderService();
 
-  String _formatCurrency(double v) => '\$${v.toStringAsFixed(2)}';
+  String _formatCurrency(double v) => Formatters.currency(v);
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {

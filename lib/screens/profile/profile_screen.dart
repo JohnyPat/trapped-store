@@ -10,6 +10,7 @@ import '../../providers/orders_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../utils/auth_guard.dart';
 import '../../utils/formatters.dart';
+import '../../utils/image_data.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
@@ -315,6 +316,7 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initials = Formatters.initials(name);
+    final inline = decodeImageDataUrl(imageUrl);
     return Container(
       width: size,
       height: size,
@@ -324,13 +326,19 @@ class _Avatar extends StatelessWidget {
         border: Border.all(color: AppColors.paper, width: 1.2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: imageUrl.startsWith('http')
-          ? Image.network(
-              imageUrl,
+      child: inline != null
+          ? Image.memory(
+              inline,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => _initials(initials),
             )
-          : _initials(initials),
+          : imageUrl.startsWith('http')
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _initials(initials),
+                )
+              : _initials(initials),
     );
   }
 

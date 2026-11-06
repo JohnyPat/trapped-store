@@ -138,7 +138,6 @@ class AdminProduct {
     );
   }
 
-  String get formattedPrice => '\$${price.toStringAsFixed(2)}';
   String get stockStatus => isAvailable ? (stock <= 5 ? 'Low stock: $stock' : 'In stock: $stock') : 'Out of stock';
   bool get isLowStock => isAvailable && stock <= 5;
 }

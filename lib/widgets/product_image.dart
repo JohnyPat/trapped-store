@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_assets.dart';
 import '../constants/app_colors.dart';
+import '../utils/image_data.dart';
 
 class ProductImage extends StatelessWidget {
   const ProductImage({
@@ -40,6 +41,10 @@ class ProductImage extends StatelessWidget {
   Widget _resolve(String fallback) {
     if (imageUrl.isEmpty) {
       return Image.asset(fallback, fit: fit, width: width, height: height);
+    }
+    final inline = decodeImageDataUrl(imageUrl);
+    if (inline != null) {
+      return Image.memory(inline, fit: fit, width: width, height: height);
     }
     // Bundled product images are served from the same Hosting filenames.
     // Use them directly when offline/slow instead of downloading the network
@@ -126,6 +131,7 @@ class EditorialImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget image;
+    final inline = decodeImageDataUrl(imageUrl);
     if (imageUrl.isEmpty) {
       image = Image.asset(
         fallbackAsset,
@@ -133,6 +139,8 @@ class EditorialImage extends StatelessWidget {
         width: width,
         height: height,
       );
+    } else if (inline != null) {
+      image = Image.memory(inline, fit: fit, width: width, height: height);
     } else if (imageUrl.startsWith('asset:')) {
       image = Image.asset(
         imageUrl.substring('asset:'.length),

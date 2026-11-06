@@ -23,6 +23,7 @@ class AdminSidebar extends StatelessWidget {
       {'icon': Icons.category, 'label': 'Categories'},
       {'icon': Icons.shopping_bag, 'label': 'Orders'},
       {'icon': Icons.people, 'label': 'Customers'},
+      {'icon': Icons.payments, 'label': 'Payments'},
       {'icon': Icons.bar_chart, 'label': 'Reports'},
       {'icon': Icons.web_asset, 'label': 'Site'},
     ];

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:trapped_store/shared/constants/admin_constants.dart';
+import 'package:trapped_store/utils/formatters.dart';
 
+import '../../utils/image_data.dart';
 import '../models/admin_product_model.dart';
 
 /// Admin product card for listing products in tables or grids.
@@ -27,6 +29,14 @@ class AdminProductCard extends StatelessWidget {
           color: AdminColors.muted);
     }
     final errorIcon = Icons.image_not_supported;
+    final inline = decodeImageDataUrl(url);
+    if (inline != null) {
+      return Image.memory(
+        inline,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Icon(errorIcon, color: AdminColors.muted),
+      );
+    }
     if (url.startsWith('http')) {
       return Image.network(
         url,
@@ -103,7 +113,7 @@ class AdminProductCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '\$${product.price.toStringAsFixed(2)}',
+                  Formatters.currency(product.price),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,

@@ -11,11 +11,13 @@ class HomeFooter extends StatelessWidget {
     required this.onShop,
     required this.onOrders,
     required this.onWishlist,
+    required this.onSizeGuide,
   });
 
   final VoidCallback onShop;
   final VoidCallback onOrders;
   final VoidCallback onWishlist;
+  final VoidCallback onSizeGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +50,7 @@ class HomeFooter extends StatelessWidget {
                     onShop: onShop,
                     onOrders: onOrders,
                     onWishlist: onWishlist,
+                    onSizeGuide: onSizeGuide,
                   ),
                 ],
               )
@@ -89,6 +92,7 @@ class HomeFooter extends StatelessWidget {
                       onShop: onShop,
                       onOrders: onOrders,
                       onWishlist: onWishlist,
+                      onSizeGuide: onSizeGuide,
                     ),
                   ),
                   Expanded(
@@ -152,11 +156,13 @@ class _FooterLinks extends StatelessWidget {
     required this.onShop,
     required this.onOrders,
     required this.onWishlist,
+    required this.onSizeGuide,
   });
 
   final VoidCallback onShop;
   final VoidCallback onOrders;
   final VoidCallback onWishlist;
+  final VoidCallback onSizeGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +181,7 @@ class _FooterLinks extends StatelessWidget {
         _FooterAction(label: 'SHOP ALL', onTap: onShop),
         _FooterAction(label: 'WISHLIST', onTap: onWishlist),
         _FooterAction(label: 'TRACK ORDERS', onTap: onOrders),
-        _FooterAction(label: 'SIZE GUIDE', onTap: () {}),
+        _FooterAction(label: 'SIZE GUIDE', onTap: onSizeGuide),
       ],
     );
   }

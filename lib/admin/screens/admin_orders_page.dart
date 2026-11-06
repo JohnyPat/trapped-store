@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trapped_store/shared/constants/admin_constants.dart';
+import 'package:trapped_store/utils/formatters.dart';
 
 import '../models/admin_order_model.dart';
 import '../services/admin_order_service.dart';
@@ -208,7 +209,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                             ],
                           ),
                         ),
-                        Text('\$${item.price.toStringAsFixed(2)}',
+                        Text(Formatters.currency(item.price),
                             style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -216,13 +217,13 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                 ),
                 const Divider(height: 24),
                 _summaryRow('Subtotal',
-                    '\$${order.subtotal.toStringAsFixed(2)}'),
+                    Formatters.currency(order.subtotal)),
                 _summaryRow('Shipping',
                     order.shippingFee == 0
                         ? 'FREE'
-                        : '\$${order.shippingFee.toStringAsFixed(2)}'),
+                        : Formatters.currency(order.shippingFee)),
                 _summaryRow('TOTAL',
-                    '\$${order.totalAmount.toStringAsFixed(2)}',
+                    Formatters.currency(order.totalAmount),
                     bold: true),
                 const SizedBox(height: 16),
                 _summaryRow('Payment method',
@@ -426,7 +427,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                                 fontWeight: FontWeight.w700)),
                         subtitle: Text(
                           '${order.customerName.isNotEmpty ? order.customerName : 'Unknown'}'
-                          '\n\$${order.totalAmount.toStringAsFixed(2)}'
+                          '\n${Formatters.currency(order.totalAmount)}'
                           ' · ${_timeAgo(order.createdAt)}',
                         ),
                         isThreeLine: true,

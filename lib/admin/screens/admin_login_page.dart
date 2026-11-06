@@ -14,6 +14,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _resetEmailController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
@@ -21,6 +22,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _resetEmailController.dispose();
     super.dispose();
   }
 
@@ -66,6 +68,50 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showForgotPassword() async {
+    _resetEmailController.text = _emailController.text.trim();
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: _resetEmailController,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Admin email',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_resetEmailController.text.trim()),
+            child: const Text('SEND LINK'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty) return;
+    try {
+      await AdminAuthService().sendPasswordReset(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password reset link sent to $email.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send reset link: $e')),
+      );
     }
   }
 
@@ -140,14 +186,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                     ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () {
-                  // Navigate to signup or password reset
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password reset coming soon.'),
-                    ),
-                  );
-                },
+                onPressed: _showForgotPassword,
                 child: const Text('Forgot password?'),
               ),
             ],

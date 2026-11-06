@@ -58,3 +58,6 @@ analyze_output2.txt
 
 # Widget Preview related
 .widget_preview/
+
+# Sideloadable release build
+/TrappedStore-release.apk

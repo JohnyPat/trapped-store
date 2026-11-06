@@ -111,9 +111,8 @@ class _AdminCustomersPageState extends State<AdminCustomersPage> {
           children: [
             _detailRow('Email', customer.email),
             _detailRow('Phone', customer.phone),
-            if (customer.address != null &&
-                customer.address!.trim().isNotEmpty)
-              _detailRow('Address', customer.address!),
+            if (customer.fullAddress.isNotEmpty)
+              _detailRow('Address', customer.fullAddress),
             _detailRow(
               'Orders',
               orderCount == null ? 'Unknown' : orderCount.toString(),

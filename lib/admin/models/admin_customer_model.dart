@@ -11,6 +11,10 @@ class AdminCustomer {
   final String email;
   final String phone;
   final String? address;
+  final String barangay;
+  final String city;
+  final String province;
+  final String postalCode;
   final String profileImage;
   final String status;
   final DateTime createdAt;
@@ -24,6 +28,10 @@ class AdminCustomer {
     required this.email,
     required this.phone,
     this.address,
+    this.barangay = '',
+    this.city = '',
+    this.province = '',
+    this.postalCode = '',
     this.profileImage = '',
     this.status = 'active',
     required this.createdAt,
@@ -50,6 +58,10 @@ class AdminCustomer {
     String? email,
     String? phone,
     String? address,
+    String? barangay,
+    String? city,
+    String? province,
+    String? postalCode,
     String? profileImage,
     String? status,
     DateTime? createdAt,
@@ -63,6 +75,10 @@ class AdminCustomer {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      barangay: barangay ?? this.barangay,
+      city: city ?? this.city,
+      province: province ?? this.province,
+      postalCode: postalCode ?? this.postalCode,
       profileImage: profileImage ?? this.profileImage,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -79,6 +95,10 @@ class AdminCustomer {
       'email': email,
       'phone': phone,
       'address': address,
+      'barangay': barangay,
+      'city': city,
+      'province': province,
+      'postalCode': postalCode,
       'profileImage': profileImage,
       'status': status,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -102,6 +122,10 @@ class AdminCustomer {
       email: data['email'] ?? '',
       phone: data['phone'] ?? '',
       address: data['address'],
+      barangay: data['barangay'] ?? '',
+      city: data['city'] ?? '',
+      province: data['province'] ?? '',
+      postalCode: data['postalCode'] ?? '',
       profileImage: data['profileImage'] ?? '',
       status: data['status'] ?? 'active',
       createdAt: data['createdAt'] != null
@@ -114,6 +138,15 @@ class AdminCustomer {
 
   String get statusLabel =>
       status.toLowerCase() == 'active' ? 'Active' : 'Disabled';
+
+  /// Street, barangay, city, province and postal code combined for display.
+  String get fullAddress => [
+        address ?? '',
+        barangay,
+        city,
+        province,
+        postalCode,
+      ].map((part) => part.trim()).where((part) => part.isNotEmpty).join(', ');
 
   Color get statusColor =>
       status.toLowerCase() == 'active' ? AdminColors.success : AdminColors.warning;

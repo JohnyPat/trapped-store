@@ -9,45 +9,51 @@ class SizeChartTable extends StatelessWidget {
   final bool compact;
 
   static const _rows = [
-    ['S', '18', '27', '19'],
-    ['M', '19', '28', '20'],
-    ['L', '20', '29', '21'],
-    ['XL', '21', '30', '22'],
-    ['2XL', '22', '31', '23'],
-  ];
+    ['X-SMALL', '22"', '27"'],
+    ['SMALL', '23"', '28"'],
+    ['MEDIUM', '24"', '29"'],
+    ['LARGE', '25"', '30"'],
+    ['X-LARGE', '26"', '31"'],
+    ['2X-LARGE', '27"', '32"'],
+    ['3X-LARGE', '28"', '33"'],
+    ['4X-LARGE', '29"', '34"'],
+   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.ink,
-      padding: EdgeInsets.all(compact ? 14 : 20),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'SIZE CHART — TOPS',
+            'SIZE CHART (INCHES)',
+            textAlign: TextAlign.center,
             style: AppTextStyles.micro.copyWith(
-              color: AppColors.paper,
-              fontSize: compact ? 7.5 : 8.5,
-              letterSpacing: 2,
+              color: AppColors.paper.withValues(alpha: .65),
+              fontSize: compact ? 8 : 9,
+              letterSpacing: 2.4,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Table(
-            border: TableBorder.all(
-              color: AppColors.paper.withValues(alpha: .25),
-              width: 0.6,
+            border: TableBorder(
+              horizontalInside: BorderSide(
+                color: AppColors.paper.withValues(alpha: .18),
+              ),
             ),
+            columnWidths: const {
+              0: FlexColumnWidth(1.7),
+              1: FlexColumnWidth(1),
+              2: FlexColumnWidth(1),
+            },
             children: [
               TableRow(
-                decoration: BoxDecoration(
-                  color: AppColors.paper.withValues(alpha: .08),
-                ),
                 children: [
-                  _cell('SIZE', header: true),
-                  _cell('CHEST', header: true),
+                  _cell('', header: true),
+                  _cell('WIDTH', header: true),
                   _cell('LENGTH', header: true),
-                  _cell('SHOULDER', header: true),
                 ],
               ),
               for (final row in _rows)

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:trapped_store/shared/constants/admin_constants.dart';
+import 'package:trapped_store/services/storage_service.dart';
 import 'package:trapped_store/utils/app_snack.dart';
 
 import '../models/admin_category_model.dart';
@@ -49,12 +51,15 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
 
   final _productService = AdminProductService();
   final _categoryService = AdminCategoryService();
+  final _storageService = StorageService();
+  final _imagePicker = ImagePicker();
 
   String? _categoryId;
   String? _selectedPreset;
   bool _featured = false;
   bool _isNew = false;
   bool _submitting = false;
+  bool _uploading = false;
   bool _loadingCategories = true;
   List<AdminCategory> _categories = [];
 
@@ -156,6 +161,68 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     }
     final url = _imageUrl.text.trim();
     return url.isEmpty ? null : url;
+  }
+
+  /// Let the admin pick a photo (camera or gallery) and upload it to
+  /// Firebase Storage. The returned download URL is written into the
+  /// image field so it syncs like any other product image.
+  Future<void> _pickAndUploadImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take a photo'),
+                onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (source == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final file =
+          await _imagePicker.pickImage(source: source, imageQuality: 85);
+      if (file == null) {
+        if (mounted) setState(() => _uploading = false);
+        return;
+      }
+      // New products have no id yet — use a timestamp-based folder.
+      final productKey = widget.product?.id ??
+          'new_${DateTime.now().millisecondsSinceEpoch}';
+      final url = await _storageService.uploadProductImage(
+        productId: productKey,
+        file: file,
+      );
+      if (!mounted) return;
+      setState(() {
+        _imageUrl.text = url;
+        _selectedPreset = null;
+        _uploading = false;
+      });
+      AppSnack.success(context, 'Photo uploaded — remember to SAVE.');
+    } on StorageServiceException catch (error) {
+      if (!mounted) return;
+      AppSnack.error(context, error.message);
+      setState(() => _uploading = false);
+    } catch (error) {
+      if (!mounted) return;
+      AppSnack.error(context, 'Upload failed: $error');
+      setState(() => _uploading = false);
+    }
   }
 
   /// Resolves either the bundled asset path or a network URL into a widget.
@@ -495,11 +562,28 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Pick a bundled streetwear shot or paste a link.',
+              'Upload a photo, pick a bundled streetwear shot, or paste a link.',
               style: TextStyle(fontSize: 11, color: AdminColors.muted),
             ),
             const SizedBox(height: 12),
             _buildImagePreview(),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _uploading ? null : _pickAndUploadImage,
+              icon: _uploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_upload_outlined, size: 18),
+              label: Text(_uploading ? 'UPLOADING…' : 'UPLOAD PHOTO'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AdminColors.ink,
+                side: const BorderSide(color: AdminColors.line),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _imageUrl,

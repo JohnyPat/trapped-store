@@ -1,13 +1,22 @@
 rules_version = '2';
 
-// Firebase Storage is not enabled on this project yet (Spark plan). These
-// rules are ready to deploy once Storage has been activated in the console.
+// Firebase Storage. Product photos are admin-only (the admin UID is
+// mirrored from `settings/adminUid` in the Realtime Database). If the
+// admin account is re-created, update this UID as well.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/profile_{fileName} {
       allow read: if true;
       allow write: if request.auth != null
         && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == '1eIC6YgOM8gU1sFwHar967HHunw2' // admin UID (from settings/adminUid)
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }

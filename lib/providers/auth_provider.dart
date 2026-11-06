@@ -144,6 +144,10 @@ class AuthProvider extends ChangeNotifier {
     required String fullName,
     required String phone,
     required String address,
+    required String barangay,
+    required String city,
+    required String province,
+    required String postalCode,
   }) async {
     final user = _firebaseUser;
     if (user == null) {
@@ -156,6 +160,11 @@ class AuthProvider extends ChangeNotifier {
         'fullName': fullName.trim(),
         'phone': phone.trim(),
         'address': address.trim(),
+        'barangay': barangay.trim(),
+        'city': city.trim(),
+        'province': province.trim(),
+        'postalCode': postalCode.trim(),
+        'email': user.email ?? '',
       });
       await _authService.updateDisplayName(fullName);
       _profile = (_profile ??
@@ -164,6 +173,10 @@ class AuthProvider extends ChangeNotifier {
             fullName: fullName.trim(),
             phone: phone.trim(),
             address: address.trim(),
+            barangay: barangay.trim(),
+            city: city.trim(),
+            province: province.trim(),
+            postalCode: postalCode.trim(),
             updatedAt: DateTime.now(),
           );
     });
@@ -183,6 +196,14 @@ class AuthProvider extends ChangeNotifier {
       );
       await _databaseService.updateUserFields(user.uid, {
         'profileImage': url,
+        'fullName': _profile?.fullName ?? '',
+        'phone': _profile?.phone ?? '',
+        'email': user.email ?? '',
+        'address': _profile?.address ?? '',
+        'barangay': _profile?.barangay ?? '',
+        'city': _profile?.city ?? '',
+        'province': _profile?.province ?? '',
+        'postalCode': _profile?.postalCode ?? '',
       });
       _profile = (_profile ??
               AppUser.empty(user.uid, email: user.email ?? ''))

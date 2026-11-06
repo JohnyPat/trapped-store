@@ -9,6 +9,10 @@ class AppUser {
     required this.email,
     this.phone = '',
     this.address = '',
+    this.barangay = '',
+    this.city = '',
+    this.province = '',
+    this.postalCode = '',
     this.profileImage = '',
     this.createdAt,
     this.updatedAt,
@@ -24,6 +28,10 @@ class AppUser {
   final String email;
   final String phone;
   final String address;
+  final String barangay;
+  final String city;
+  final String province;
+  final String postalCode;
   final String profileImage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -42,7 +50,10 @@ class AppUser {
   bool get hasCompleteDeliveryInfo =>
       fullName.trim().isNotEmpty &&
       phone.trim().isNotEmpty &&
-      address.trim().isNotEmpty;
+      address.trim().isNotEmpty &&
+      city.trim().isNotEmpty &&
+      province.trim().isNotEmpty &&
+      postalCode.trim().isNotEmpty;
 
   factory AppUser.fromMap(String uid, Map<dynamic, dynamic> map) {
     final data = asStringMap(map);
@@ -53,6 +64,10 @@ class AppUser {
       email: asString(data['email']),
       phone: asString(data['phone']),
       address: asString(data['address']),
+      barangay: asString(data['barangay']),
+      city: asString(data['city']),
+      province: asString(data['province']),
+      postalCode: asString(data['postalCode']),
       profileImage: asString(data['profileImage']),
       createdAt: asDate(data['createdAt']),
       updatedAt: asDate(data['updatedAt']),
@@ -69,6 +84,10 @@ class AppUser {
     String? email,
     String? phone,
     String? address,
+    String? barangay,
+    String? city,
+    String? province,
+    String? postalCode,
     String? profileImage,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -81,6 +100,10 @@ class AppUser {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       address: address ?? this.address,
+      barangay: barangay ?? this.barangay,
+      city: city ?? this.city,
+      province: province ?? this.province,
+      postalCode: postalCode ?? this.postalCode,
       profileImage: profileImage ?? this.profileImage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -97,6 +120,10 @@ class AppUser {
       'email': email.trim(),
       'phone': phone.trim(),
       'address': address.trim(),
+      'barangay': barangay.trim(),
+      'city': city.trim(),
+      'province': province.trim(),
+      'postalCode': postalCode.trim(),
       'profileImage': profileImage,
       'status': status.trim().toLowerCase().isEmpty ? statusActive : status,
       'updatedAt': now,

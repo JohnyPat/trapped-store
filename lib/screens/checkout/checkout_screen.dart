@@ -51,6 +51,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         : (auth.email ?? '');
     _phone.text = profile?.phone ?? '';
     _street.text = profile?.address ?? '';
+    _barangay.text = profile?.barangay ?? '';
+    _city.text = profile?.city ?? '';
+    _province.text = profile?.province ?? '';
+    _postalCode.text = profile?.postalCode ?? '';
   }
 
   @override

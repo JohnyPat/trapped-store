@@ -65,6 +65,22 @@
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString()"
         },
+        "barangay": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString()"
+        },
+        "city": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString()"
+        },
+        "province": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString()"
+        },
+        "postalCode": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString()"
+        },
         "profileImage": {
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString()"

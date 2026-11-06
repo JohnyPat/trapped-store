@@ -25,6 +25,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _address = TextEditingController();
+  final _barangay = TextEditingController();
+  final _city = TextEditingController();
+  final _province = TextEditingController();
+  final _postalCode = TextEditingController();
   bool _saving = false;
   bool _uploading = false;
 
@@ -35,6 +39,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _name.text = profile?.fullName ?? '';
     _phone.text = profile?.phone ?? '';
     _address.text = profile?.address ?? '';
+    _barangay.text = profile?.barangay ?? '';
+    _city.text = profile?.city ?? '';
+    _province.text = profile?.province ?? '';
+    _postalCode.text = profile?.postalCode ?? '';
   }
 
   @override
@@ -42,6 +50,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _name.dispose();
     _phone.dispose();
     _address.dispose();
+    _barangay.dispose();
+    _city.dispose();
+    _province.dispose();
+    _postalCode.dispose();
     super.dispose();
   }
 
@@ -54,6 +66,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       fullName: _name.text.trim(),
       phone: _phone.text.trim(),
       address: _address.text.trim(),
+      barangay: _barangay.text.trim(),
+      city: _city.text.trim(),
+      province: _province.text.trim(),
+      postalCode: _postalCode.text.trim(),
     );
     if (!mounted) return;
     setState(() => _saving = false);
@@ -284,15 +300,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(height: 15),
                       TrappedTextField(
-                        label: 'Delivery address',
+                        label: 'Street address',
                         controller: _address,
-                        hint: 'House number, street, barangay, city, province',
-                        maxLines: 3,
-                        textInputAction: TextInputAction.newline,
+                        hint: 'House number, street, subdivision',
+                        textInputAction: TextInputAction.next,
                         validator: Validators.address,
                         autofillHints: const [
                           AutofillHints.streetAddressLine1,
                         ],
+                      ),
+                      const SizedBox(height: 15),
+                      TrappedTextField(
+                        label: 'Barangay (optional)',
+                        controller: _barangay,
+                        hint: 'Barangay',
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 15),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TrappedTextField(
+                              label: 'City',
+                              controller: _city,
+                              hint: 'City',
+                              textInputAction: TextInputAction.next,
+                              validator: (value) =>
+                                  Validators.required(value, field: 'City'),
+                              autofillHints: const [AutofillHints.addressCity],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TrappedTextField(
+                              label: 'Province',
+                              controller: _province,
+                              hint: 'Province',
+                              textInputAction: TextInputAction.next,
+                              validator: (value) => Validators.required(
+                                value,
+                                field: 'Province',
+                              ),
+                              autofillHints: const [
+                                AutofillHints.addressState,
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      TrappedTextField(
+                        label: 'Postal code',
+                        controller: _postalCode,
+                        hint: '1000',
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        validator: Validators.postalCode,
+                        autofillHints: const [AutofillHints.postalCode],
                       ),
                       const SizedBox(height: 26),
                       TrappedButton(

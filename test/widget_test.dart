@@ -43,6 +43,11 @@ void main() {
         'fullName': 'Juan Dela Cruz',
         'email': 'juan@gmail.com',
         'phone': '09123456789',
+        'address': '609 Bagong Bayan',
+        'barangay': 'Darangan',
+        'city': 'Binangonan',
+        'province': 'Rizal',
+        'postalCode': '1940',
         'lastLoginAt': 1793664000000,
         'createdAt': 1793664000000,
         'updatedAt': 1793664000000,
@@ -50,6 +55,12 @@ void main() {
 
       expect(user.uid, 'abc123');
       expect(user.phone, '09123456789');
+      expect(user.address, '609 Bagong Bayan');
+      expect(user.barangay, 'Darangan');
+      expect(user.city, 'Binangonan');
+      expect(user.province, 'Rizal');
+      expect(user.postalCode, '1940');
+      expect(user.hasCompleteDeliveryInfo, isTrue);
       expect(user.status, 'active');
       expect(user.isActive, isTrue);
       expect(user.isDisabled, isFalse);

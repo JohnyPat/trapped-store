@@ -126,37 +126,42 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     );
   }
 
-  // ── Mobile login (unchanged layout) ─────────────────────────────────
+  // ── Mobile login (centred and width-capped on wide windows) ─────────
 
   Widget _buildMobileLogin() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Admin Login',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Admin Login',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 40),
+                _buildEmailField(),
+                const SizedBox(height: 16),
+                _buildPasswordField(),
+                const SizedBox(height: 24),
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _signIn,
+                        child: const Text('Sign In'),
+                      ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _showForgotPassword,
+                  child: const Text('Forgot password?'),
+                ),
+              ],
             ),
-            const SizedBox(height: 40),
-            _buildEmailField(),
-            const SizedBox(height: 16),
-            _buildPasswordField(),
-            const SizedBox(height: 24),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _signIn,
-                    child: const Text('Sign In'),
-                  ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: _showForgotPassword,
-              child: const Text('Forgot password?'),
-            ),
-          ],
+          ),
         ),
       ),
     );

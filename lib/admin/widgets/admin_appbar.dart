@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:trapped_store/shared/constants/admin_constants.dart';
 
-/// Admin app bar for desktop/web layout, with sidebar toggle and user menu.
+import 'admin_breakpoints.dart';
+
+/// Admin app bar for the mobile layout, with drawer toggle and user menu.
 class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AdminAppBar({
     super.key,
@@ -17,16 +19,13 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isMobile = AdminBreakpoints.isMobile(context);
 
     return AppBar(
       title: title != null
           ? Text(
               title!,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 20,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
             )
           : const Text('Trapped Store'),
       actions: [

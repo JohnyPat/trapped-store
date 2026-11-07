@@ -4,6 +4,10 @@ import 'package:trapped_store/shared/constants/admin_constants.dart';
 import 'package:trapped_store/models/payment.dart';
 import 'package:trapped_store/utils/app_snack.dart';
 import 'package:trapped_store/admin/widgets/admin_appbar.dart';
+import 'package:trapped_store/admin/widgets/admin_breakpoints.dart';
+import 'package:trapped_store/admin/widgets/admin_page_container.dart';
+import 'package:trapped_store/admin/widgets/admin_section_card.dart';
+import 'package:trapped_store/admin/widgets/admin_stat_card.dart';
 import 'package:trapped_store/admin/widgets/dashboard_card.dart';
 import 'package:trapped_store/admin/services/admin_auth_service.dart';
 
@@ -40,16 +44,23 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (AdminBreakpoints.isDesktop(context)) {
+      return _buildDesktop();
+    }
+    return _buildMobile();
+  }
+
+  // ── Mobile (unchanged layout) ───────────────────────────────────────
+
+  Widget _buildMobile() {
     return Scaffold(
       appBar: AdminAppBar(
         onMenuToggle: () {},
         onLogout: () async {
           await AdminAuthService().signOut();
-          if (!context.mounted) return;
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/admin/login',
-            (route) => false,
-          );
+          if (!mounted) return;
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/admin/login', (route) => false);
         },
       ),
       body: _isLoading
@@ -68,16 +79,10 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Summary stats
                   _buildSummaryStats(),
                   const SizedBox(height: 24),
-
-                  // Filters
                   _buildFilters(),
                   const SizedBox(height: 24),
-
-                  // Payments list
                   _buildPaymentsList(),
                 ],
               ),
@@ -129,7 +134,6 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          // Payment method filter
           _buildFilterChip(
             label: 'All Methods',
             isSelected: _selectedMethod == null,
@@ -172,7 +176,6 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
             },
           ),
           const SizedBox(height: 8),
-          // Status filter
           const Text(
             'Status:',
             style: TextStyle(
@@ -189,7 +192,9 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
                 label: Text(status.label),
                 selected: _selectedStatus == status.value,
                 onSelected: (selected) {
-                  setState(() => _selectedStatus = selected ? status.value : null);
+                  setState(
+                    () => _selectedStatus = selected ? status.value : null,
+                  );
                 },
                 backgroundColor: AdminColors.paper,
                 selectedColor: AdminColors.accent,
@@ -220,6 +225,216 @@ class _AdminPaymentsPageState extends State<AdminPaymentsPage> {
   Widget _buildPaymentsList() {
     return const Center(
       child: Text('Payment list will appear here after Firebase setup'),
+    );
+  }
+
+  // ── Desktop layout ──────────────────────────────────────────────────
+
+  Widget _buildDesktop() {
+    return Scaffold(
+      backgroundColor: AdminColors.canvas,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : AdminPageContainer(
+              scrollable: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AdminPageHeader(
+                    title: 'Payments',
+                    subtitle: 'Review payment methods and settlement status across orders.',
+                    actions: OutlinedButton.icon(
+                      onPressed: _loadPayments,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Refresh'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdminColors.ink,
+                        side: const BorderSide(color: AdminColors.line),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 132,
+                          child: AdminStatCard(
+                            title: 'Total Payments',
+                            value: '0',
+                            iconData: Icons.payment,
+                            color: AdminColors.accent,
+                            hint: 'Payments recorded across all orders',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: SizedBox(
+                          height: 132,
+                          child: AdminStatCard(
+                            title: 'Successful',
+                            value: '0',
+                            iconData: Icons.check_circle_outline,
+                            color: AdminColors.success,
+                            hint: 'Payments confirmed by the provider',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  AdminSectionCard(
+                    title: 'Filters',
+                    subtitle: 'Narrow the payment list by method or status.',
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'PAYMENT METHOD',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                  color: AdminColors.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _buildFilterChip(
+                                    label: 'All Methods',
+                                    isSelected: _selectedMethod == null,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _selectedMethod = selected
+                                            ? null
+                                            : 'all';
+                                      });
+                                    },
+                                  ),
+                                  _buildFilterChip(
+                                    label: 'GCash',
+                                    isSelected: _selectedMethod == 'gcash',
+                                    onSelected: (selected) {
+                                      setState(
+                                        () => _selectedMethod = selected
+                                            ? 'gcash'
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                                  _buildFilterChip(
+                                    label: 'Maya',
+                                    isSelected: _selectedMethod == 'maya',
+                                    onSelected: (selected) {
+                                      setState(
+                                        () => _selectedMethod = selected
+                                            ? 'maya'
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                                  _buildFilterChip(
+                                    label: 'Card',
+                                    isSelected: _selectedMethod == 'card',
+                                    onSelected: (selected) {
+                                      setState(
+                                        () => _selectedMethod = selected
+                                            ? 'card'
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                                  _buildFilterChip(
+                                    label: 'COD',
+                                    isSelected: _selectedMethod == 'cod',
+                                    onSelected: (selected) {
+                                      setState(
+                                        () => _selectedMethod = selected
+                                            ? 'cod'
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 32),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'PAYMENT STATUS',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                  color: AdminColors.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: PaymentStatus.values.map((status) {
+                                  return FilterChip(
+                                    label: Text(status.label),
+                                    selected: _selectedStatus == status.value,
+                                    onSelected: (selected) {
+                                      setState(
+                                        () => _selectedStatus = selected
+                                            ? status.value
+                                            : null,
+                                      );
+                                    },
+                                    backgroundColor: AdminColors.paper,
+                                    selectedColor: AdminColors.accent,
+                                    checkmarkColor: AdminColors.ink,
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AdminSectionCard(
+                    title: 'Payment records',
+                    subtitle:
+                        'Payment list will appear here after Firebase setup.',
+                    child: const SizedBox(
+                      height: 140,
+                      child: Center(
+                        child: Text(
+                          'Payment list will appear here after Firebase setup',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AdminColors.muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

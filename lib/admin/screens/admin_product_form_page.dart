@@ -10,6 +10,9 @@ import '../models/admin_category_model.dart';
 import '../models/admin_product_model.dart';
 import '../services/admin_category_service.dart';
 import '../services/admin_product_service.dart';
+import '../widgets/admin_breakpoints.dart';
+import '../widgets/admin_page_container.dart';
+import '../widgets/admin_section_card.dart';
 
 /// Bundled product images that can be assigned as a product image.
 const _bundledImages = <String>[
@@ -87,8 +90,9 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
       final existing = product.imageUrl ?? '';
       if (existing.isNotEmpty && !existing.startsWith('http')) {
         // Bundled asset path — mark it as the selected preset
-        _selectedPreset =
-            existing.startsWith('asset:') ? existing.substring(6) : existing;
+        _selectedPreset = existing.startsWith('asset:')
+            ? existing.substring(6)
+            : existing;
       }
     }
     _loadCategories();
@@ -206,8 +210,8 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         return;
       }
       // New products have no id yet — use a timestamp-based folder.
-      final productKey = widget.product?.id ??
-          'new_${DateTime.now().millisecondsSinceEpoch}';
+      final productKey =
+          widget.product?.id ?? 'new_${DateTime.now().millisecondsSinceEpoch}';
       final url = await _storageService.uploadProductImage(
         productId: productKey,
         file: file,
@@ -251,16 +255,18 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         errorBuilder: (_, _, _) => _brokenImage(),
       );
     }
-    final assetPath =
-        path.startsWith('asset:') ? path.substring('asset:'.length) : path;
-    return Image.asset(assetPath, fit: fit, errorBuilder: (_, _, _) => _brokenImage());
+    final assetPath = path.startsWith('asset:')
+        ? path.substring('asset:'.length)
+        : path;
+    return Image.asset(
+      assetPath,
+      fit: fit,
+      errorBuilder: (_, _, _) => _brokenImage(),
+    );
   }
 
-  Widget _brokenImage() => const Icon(
-        Icons.image_not_supported,
-        size: 48,
-        color: AdminColors.muted,
-      );
+  Widget _brokenImage() =>
+      const Icon(Icons.image_not_supported, size: 48, color: AdminColors.muted);
 
   /// Large live preview of the chosen image.
   Widget _buildImagePreview() {
@@ -276,12 +282,16 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.add_photo_alternate_outlined,
-                        size: 48, color: AdminColors.muted),
+                    const Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 48,
+                      color: AdminColors.muted,
+                    ),
                     const SizedBox(height: 8),
-                    Text('Choose an image below',
-                        style: TextStyle(
-                            color: AdminColors.muted, fontSize: 12)),
+                    Text(
+                      'Choose an image below',
+                      style: TextStyle(color: AdminColors.muted, fontSize: 12),
+                    ),
                   ],
                 ),
               )
@@ -295,7 +305,9 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
                       left: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         color: AdminColors.ink,
                         child: const Text(
                           'BUNDLED',
@@ -315,13 +327,13 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   }
 
   /// Grid of bundled streetwear shots to choose from.
-  Widget _buildPresetGrid() {
+  Widget _buildPresetGrid({int columns = 4}) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _bundledImages.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
@@ -342,13 +354,19 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(path, fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _brokenImage()),
+                Image.asset(
+                  path,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _brokenImage(),
+                ),
                 if (selected)
                   Container(
                     color: AdminColors.ink.withValues(alpha: 0.55),
-                    child: const Icon(Icons.check_circle,
-                        color: AdminColors.paper, size: 32),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: AdminColors.paper,
+                      size: 32,
+                    ),
                   ),
               ],
             ),
@@ -386,8 +404,9 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
       }
 
       final compareAtPriceText = _compareAtPrice.text.trim();
-      final compareAtPrice =
-          compareAtPriceText.isEmpty ? null : double.parse(compareAtPriceText);
+      final compareAtPrice = compareAtPriceText.isEmpty
+          ? null
+          : double.parse(compareAtPriceText);
       final imageUrl = _effectiveImage;
 
       if (_isEditing) {
@@ -436,240 +455,443 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = AdminBreakpoints.isDesktop(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Product' : 'Add Product'),
-      ),
+      backgroundColor: desktop ? AdminColors.canvas : null,
+      appBar: desktop
+          ? null
+          : AppBar(title: Text(_isEditing ? 'Edit Product' : 'Add Product')),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(
-                labelText: 'Product name *',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _description,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16),
-            Row(
+        child: desktop ? _buildDesktopForm() : _buildMobileForm(),
+      ),
+    );
+  }
+
+  // ── Mobile form (unchanged layout) ──────────────────────────────────
+
+  Widget _buildMobileForm() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _buildNameField(),
+        const SizedBox(height: 16),
+        _buildDescriptionField(),
+        const SizedBox(height: 16),
+        _buildPricingRow(),
+        const SizedBox(height: 16),
+        _buildStockSizesRow(),
+        const SizedBox(height: 16),
+        _buildCategoryFields(),
+        const SizedBox(height: 16),
+        Text(
+          'PRODUCT IMAGE',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+            color: AdminColors.ink,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Upload a photo, pick a bundled streetwear shot, or paste a link.',
+          style: TextStyle(fontSize: 11, color: AdminColors.muted),
+        ),
+        const SizedBox(height: 12),
+        _buildImagePreview(),
+        const SizedBox(height: 12),
+        _buildUploadButton(),
+        const SizedBox(height: 12),
+        _buildImageUrlField(),
+        const SizedBox(height: 12),
+        const Text(
+          'Bundled images (tap to select):',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AdminColors.muted,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildPresetGrid(),
+        const SizedBox(height: 16),
+        _buildSkuField(),
+        const SizedBox(height: 16),
+        _buildSwitchTiles(),
+        const SizedBox(height: 24),
+        _buildSubmitButton(),
+      ],
+    );
+  }
+
+  // ── Desktop two-column form ─────────────────────────────────────────
+
+  Widget _buildDesktopForm() {
+    return AdminPageContainer(
+      scrollable: true,
+      padding: const EdgeInsets.fromLTRB(32, 28, 32, 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AdminPageHeader(
+            title: _isEditing ? 'Edit product' : 'Add product',
+            subtitle: _isEditing
+                ? 'Update the details for “${widget.product!.name}”.'
+                : 'Create a new product for the storefront.',
+            actions: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _price,
-                    decoration: const InputDecoration(
-                      labelText: 'Price *',
-                      border: OutlineInputBorder(),
-                      prefixText: '\$ ',
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: _validatePrice,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _compareAtPrice,
-                    decoration: const InputDecoration(
-                      labelText: 'Compare-at price (optional)',
-                      border: OutlineInputBorder(),
-                      prefixText: '\$ ',
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) return null;
-                      final price = double.tryParse(value.trim());
-                      if (price == null) return 'Enter a valid number';
-                      if (price < 0) return 'Cannot be negative';
-                      return null;
-                    },
-                  ),
-                ),
+                _buildBackButton(),
+                const SizedBox(width: 8),
+                _buildDesktopSaveButton(),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _stock,
-                    decoration: const InputDecoration(
-                      labelText: 'Stock *',
-                      border: OutlineInputBorder(),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  children: [
+                    AdminSectionCard(
+                      title: 'Basic details',
+                      subtitle: 'Name, description, pricing and inventory.',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildNameField(),
+                          const SizedBox(height: 16),
+                          _buildDescriptionField(),
+                          const SizedBox(height: 16),
+                          _buildPricingRow(),
+                          const SizedBox(height: 16),
+                          _buildStockSizesRow(),
+                        ],
+                      ),
                     ),
-                    keyboardType: TextInputType.number,
-                    validator: _validateStock,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _sizes,
-                    decoration: const InputDecoration(
-                      labelText: 'Sizes * (comma separated)',
-                      border: OutlineInputBorder(),
-                      hintText: 'S, M, L, XL',
+                    const SizedBox(height: 16),
+                    AdminSectionCard(
+                      title: 'Category',
+                      subtitle:
+                          'Choose an existing category or create a new one.',
+                      child: _buildCategoryFields(),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_loadingCategories)
-              const Center(child: CircularProgressIndicator())
-            else ...[
-              DropdownButtonFormField<String>(
-                initialValue: _categoryId,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                ),
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                    .toList(),
-                onChanged: (value) => setState(() => _categoryId = value),
-                hint: const Text('Select a category'),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Or create a new category:',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AdminColors.muted,
+                    const SizedBox(height: 16),
+                    AdminSectionCard(
+                      title: 'Details',
+                      subtitle: 'SKU and storefront badges.',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSkuField(),
+                          const SizedBox(height: 8),
+                          _buildSwitchTiles(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _newCategory,
-                decoration: const InputDecoration(
-                  hintText: 'New category name',
-                  border: OutlineInputBorder(),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 2,
+                child: AdminSectionCard(
+                  title: 'Product image',
+                  subtitle: 'Upload a photo or paste a link, then pick a bundled shot below.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildImagePreview(),
+                      const SizedBox(height: 12),
+                      _buildUploadButton(),
+                      const SizedBox(height: 12),
+                      _buildImageUrlField(),
+                    ],
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            // ── PRODUCT IMAGE ─────────────────────────────
-            Text(
-              'PRODUCT IMAGE',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-                color: AdminColors.ink,
-              ),
+          ),
+          const SizedBox(height: 16),
+          AdminSectionCard(
+            title: 'Bundled images',
+            subtitle: 'Tap a shot to use it as the product image.',
+            child: _buildPresetGrid(columns: 6),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _buildBackButton(),
+              const SizedBox(width: 12),
+              _buildDesktopSaveButton(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Shared field builders ───────────────────────────────────────────
+
+  Widget _buildNameField() {
+    return TextFormField(
+      controller: _name,
+      decoration: const InputDecoration(
+        labelText: 'Product name *',
+        border: OutlineInputBorder(),
+      ),
+      validator: (v) =>
+          (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      controller: _description,
+      decoration: const InputDecoration(
+        labelText: 'Description',
+        border: OutlineInputBorder(),
+        alignLabelWithHint: true,
+      ),
+      maxLines: 3,
+    );
+  }
+
+  Widget _buildPricingRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: _price,
+            decoration: const InputDecoration(
+              labelText: 'Price *',
+              border: OutlineInputBorder(),
+              prefixText: '\$ ',
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Upload a photo, pick a bundled streetwear shot, or paste a link.',
-              style: TextStyle(fontSize: 11, color: AdminColors.muted),
-            ),
-            const SizedBox(height: 12),
-            _buildImagePreview(),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _uploading ? null : _pickAndUploadImage,
-              icon: _uploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.cloud_upload_outlined, size: 18),
-              label: Text(_uploading ? 'UPLOADING…' : 'UPLOAD PHOTO'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AdminColors.ink,
-                side: const BorderSide(color: AdminColors.line),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _imageUrl,
-              decoration: const InputDecoration(
-                labelText: 'Or paste image URL / asset path',
-                border: OutlineInputBorder(),
-                hintText: 'https://… or assets/images/products/…',
-              ),
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.next,
-              onChanged: (_) => setState(() => _selectedPreset = null),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Bundled images (tap to select):',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AdminColors.muted,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildPresetGrid(),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _sku,
-              decoration: const InputDecoration(
-                labelText: 'SKU (optional — auto generated if empty)',
-                border: OutlineInputBorder(),
-                hintText: 'TRP-XXX-123',
-              ),
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Featured'),
-              value: _featured,
-              onChanged: (v) => setState(() => _featured = v),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Mark as New'),
-              value: _isNew,
-              onChanged: (v) => setState(() => _isNew = v),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _submitting ? null : _save,
-              style: FilledButton.styleFrom(
-                backgroundColor: AdminColors.ink,
-                foregroundColor: AdminColors.paper,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _submitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      _isEditing ? 'SAVE CHANGES' : 'ADD PRODUCT',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-            ),
-          ],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: _validatePrice,
+          ),
         ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: TextFormField(
+            controller: _compareAtPrice,
+            decoration: const InputDecoration(
+              labelText: 'Compare-at price (optional)',
+              border: OutlineInputBorder(),
+              prefixText: '\$ ',
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return null;
+              final price = double.tryParse(value.trim());
+              if (price == null) return 'Enter a valid number';
+              if (price < 0) return 'Cannot be negative';
+              return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStockSizesRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: _stock,
+            decoration: const InputDecoration(
+              labelText: 'Stock *',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+            validator: _validateStock,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: TextFormField(
+            controller: _sizes,
+            decoration: const InputDecoration(
+              labelText: 'Sizes * (comma separated)',
+              border: OutlineInputBorder(),
+              hintText: 'S, M, L, XL',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryFields() {
+    if (_loadingCategories) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _categoryId,
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(),
+          ),
+          items: _categories
+              .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+              .toList(),
+          onChanged: (value) => setState(() => _categoryId = value),
+          hint: const Text('Select a category'),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Or create a new category:',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AdminColors.muted,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _newCategory,
+          decoration: const InputDecoration(
+            hintText: 'New category name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUploadButton() {
+    return OutlinedButton.icon(
+      onPressed: _uploading ? null : _pickAndUploadImage,
+      icon: _uploading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.cloud_upload_outlined, size: 18),
+      label: Text(_uploading ? 'UPLOADING…' : 'UPLOAD PHOTO'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AdminColors.ink,
+        side: const BorderSide(color: AdminColors.line),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildImageUrlField() {
+    return TextFormField(
+      controller: _imageUrl,
+      decoration: const InputDecoration(
+        labelText: 'Or paste image URL / asset path',
+        border: OutlineInputBorder(),
+        hintText: 'https://… or assets/images/products/…',
+      ),
+      keyboardType: TextInputType.url,
+      textInputAction: TextInputAction.next,
+      onChanged: (_) => setState(() => _selectedPreset = null),
+    );
+  }
+
+  Widget _buildSkuField() {
+    return TextFormField(
+      controller: _sku,
+      decoration: const InputDecoration(
+        labelText: 'SKU (optional — auto generated if empty)',
+        border: OutlineInputBorder(),
+        hintText: 'TRP-XXX-123',
+      ),
+    );
+  }
+
+  Widget _buildSwitchTiles() {
+    return Column(
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Featured'),
+          value: _featured,
+          onChanged: (v) => setState(() => _featured = v),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Mark as New'),
+          value: _isNew,
+          onChanged: (v) => setState(() => _isNew = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return FilledButton(
+      onPressed: _submitting ? null : _save,
+      style: FilledButton.styleFrom(
+        backgroundColor: AdminColors.ink,
+        foregroundColor: AdminColors.paper,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+      child: _submitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              _isEditing ? 'SAVE CHANGES' : 'ADD PRODUCT',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.5,
+              ),
+            ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return OutlinedButton.icon(
+      onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+      icon: const Icon(Icons.arrow_back, size: 18),
+      label: const Text('Back'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AdminColors.ink,
+        side: const BorderSide(color: AdminColors.line),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildDesktopSaveButton() {
+    return FilledButton.icon(
+      onPressed: _submitting ? null : _save,
+      icon: _submitting
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.save_outlined, size: 18),
+      label: Text(
+        _submitting ? 'Saving…' : (_isEditing ? 'Save changes' : 'Add product'),
+      ),
+      style: FilledButton.styleFrom(
+        backgroundColor: AdminColors.ink,
+        foregroundColor: AdminColors.paper,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       ),
     );
   }

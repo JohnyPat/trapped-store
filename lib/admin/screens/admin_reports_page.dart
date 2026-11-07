@@ -5,6 +5,10 @@ import 'package:trapped_store/utils/formatters.dart';
 
 import '../models/admin_order_model.dart';
 import '../services/admin_order_service.dart';
+import '../widgets/admin_breakpoints.dart';
+import '../widgets/admin_page_container.dart';
+import '../widgets/admin_section_card.dart';
+import '../widgets/admin_stat_card.dart';
 
 /// Admin reports dashboard: sales overview, revenue split, top products.
 class AdminReportsPage extends StatefulWidget {
@@ -40,6 +44,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AdminBreakpoints.isDesktop(context)
+          ? AdminColors.canvas
+          : null,
       body: StreamBuilder<List<AdminOrder>>(
         stream: _orderService.watchAllOrders(),
         builder: (context, snapshot) {
@@ -75,7 +82,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                 (methodCount[o.paymentMethod.toLowerCase()] ?? 0) + 1;
             methodRevenue[o.paymentMethod.toLowerCase()] =
                 (methodRevenue[o.paymentMethod.toLowerCase()] ?? 0.0) +
-                    o.totalAmount;
+                o.totalAmount;
             totalRevenue += o.totalAmount;
             if (status == 'delivered') {
               deliveredRevenue += o.totalAmount;
@@ -91,6 +98,20 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
             ..sort((a, b) => b.value.compareTo(a.value));
           final sortedStatus = statusCount.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
+
+          if (AdminBreakpoints.isDesktop(context)) {
+            return _buildDesktopBody(
+              orders: orders,
+              sortedStatus: sortedStatus,
+              sortedSold: sortedSold,
+              methodCount: methodCount,
+              methodRevenue: methodRevenue,
+              deliveredRevenue: deliveredRevenue,
+              totalRevenue: totalRevenue,
+              deliveredCount: deliveredCount,
+              cancelledCount: cancelledCount,
+            );
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -134,7 +155,8 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                     ),
                     _metricCard(
                       'ACTIVE ORDERS',
-                      (orders.length - deliveredCount - cancelledCount).toString(),
+                      (orders.length - deliveredCount - cancelledCount)
+                          .toString(),
                       Icons.pending_actions,
                       AdminColors.accent,
                     ),
@@ -171,7 +193,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                           : entry.value / orders.length;
                       return Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
                             SizedBox(
@@ -232,8 +256,10 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                   child: sortedSold.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('No sales data yet.',
-                              style: TextStyle(color: AdminColors.muted)),
+                          child: Text(
+                            'No sales data yet.',
+                            style: TextStyle(color: AdminColors.muted),
+                          ),
                         )
                       : Column(
                           children: List.generate(
@@ -244,11 +270,12 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                               final total = sortedSold
                                   .map((e) => e.value)
                                   .fold<int>(0, (a, b) => a + b);
-                              final fraction =
-                                  total == 0 ? 0.0 : qty / total;
+                              final fraction = total == 0 ? 0.0 : qty / total;
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 9),
+                                  horizontal: 14,
+                                  vertical: 9,
+                                ),
                                 child: Row(
                                   children: [
                                     SizedBox(
@@ -277,8 +304,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                                           ),
                                           const SizedBox(height: 3),
                                           ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(2),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
                                             child: LinearProgressIndicator(
                                               value: fraction,
                                               minHeight: 6,
@@ -329,7 +357,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                         if (methodCount[method] != null)
                           Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             child: Row(
                               children: [
                                 Expanded(
@@ -353,8 +383,10 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                       if (methodCount.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(16),
-                          child: Text('No payment data yet.',
-                              style: TextStyle(color: AdminColors.muted)),
+                          child: Text(
+                            'No payment data yet.',
+                            style: TextStyle(color: AdminColors.muted),
+                          ),
                         ),
                     ],
                   ),
@@ -385,8 +417,372 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
     );
   }
 
-  Widget _metricCard(
-      String label, String value, IconData icon, Color accent) {
+  Widget _buildDesktopBody({
+    required List<AdminOrder> orders,
+    required List<MapEntry<String, int>> sortedStatus,
+    required List<MapEntry<String, int>> sortedSold,
+    required Map<String, int> methodCount,
+    required Map<String, double> methodRevenue,
+    required double deliveredRevenue,
+    required double totalRevenue,
+    required int deliveredCount,
+    required int cancelledCount,
+  }) {
+    return AdminPageContainer(
+      scrollable: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AdminPageHeader(
+            title: 'Reports',
+            subtitle: 'Overall performance across all store orders.',
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 860 ? 4 : 2;
+              const spacing = 16.0;
+              final width =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              final metrics = <Widget>[
+                _desktopMetric(
+                  width,
+                  'TOTAL ORDERS',
+                  orders.length.toString(),
+                  Icons.receipt_long,
+                  AdminColors.ink,
+                  'All orders in the store',
+                ),
+                _desktopMetric(
+                  width,
+                  'PAID / DELIVERED SALES',
+                  _formatCurrency(deliveredRevenue),
+                  Icons.payments,
+                  AdminColors.success,
+                  'Revenue from delivered orders',
+                ),
+                _desktopMetric(
+                  width,
+                  'ACTIVE ORDERS',
+                  (orders.length - deliveredCount - cancelledCount).toString(),
+                  Icons.pending_actions,
+                  AdminColors.accent,
+                  'Orders still in progress',
+                ),
+                _desktopMetric(
+                  width,
+                  'CANCELLED',
+                  cancelledCount.toString(),
+                  Icons.cancel_outlined,
+                  AdminColors.danger,
+                  'Orders cancelled by customers or admin',
+                ),
+              ];
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: metrics,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final sideBySide = constraints.maxWidth >= 900;
+              final statusCard = AdminSectionCard(
+                title: 'Orders by status',
+                subtitle: 'Distribution of order states',
+                child: _statusBreakdown(sortedStatus, orders.length),
+              );
+              final productsCard = AdminSectionCard(
+                title: 'Top selling products',
+                subtitle: 'By quantity ordered',
+                child: _topProducts(sortedSold),
+              );
+              if (!sideBySide) {
+                return Column(
+                  children: [
+                    statusCard,
+                    const SizedBox(height: 16),
+                    productsCard,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: statusCard),
+                  const SizedBox(width: 24),
+                  Expanded(child: productsCard),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final sideBySide = constraints.maxWidth >= 900;
+              final methodsCard = AdminSectionCard(
+                title: 'Payment methods',
+                subtitle: 'Usage and revenue per method',
+                child: _paymentMethods(methodCount, methodRevenue),
+              );
+              final revenueCard = AdminSectionCard(
+                title: 'Total revenue',
+                subtitle: 'All orders, including active and cancelled',
+                child: _revenueSummary(totalRevenue),
+              );
+              if (!sideBySide) {
+                return Column(
+                  children: [
+                    methodsCard,
+                    const SizedBox(height: 16),
+                    revenueCard,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: methodsCard),
+                  const SizedBox(width: 24),
+                  Expanded(child: revenueCard),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _desktopMetric(
+    double width,
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    String hint,
+  ) {
+    return SizedBox(
+      width: width,
+      height: 132,
+      child: AdminStatCard(
+        title: title,
+        value: value,
+        iconData: icon,
+        color: color,
+        hint: hint,
+      ),
+    );
+  }
+
+  Widget _statusBreakdown(
+    List<MapEntry<String, int>> entries,
+    int totalOrders,
+  ) {
+    if (entries.isEmpty) {
+      return const Text(
+        'No orders yet.',
+        style: TextStyle(fontSize: 13, color: AdminColors.muted),
+      );
+    }
+    return Column(
+      children: [
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    entry.key.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: AdminColors.ink,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: totalOrders == 0 ? 0 : entry.value / totalOrders,
+                      minHeight: 9,
+                      backgroundColor: AdminColors.canvas,
+                      color: _statusColor(entry.key),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${entry.value}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AdminColors.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _topProducts(List<MapEntry<String, int>> sortedSold) {
+    if (sortedSold.isEmpty) {
+      return const Text(
+        'No sales data yet.',
+        style: TextStyle(fontSize: 13, color: AdminColors.muted),
+      );
+    }
+    final total = sortedSold.fold<int>(0, (sum, entry) => sum + entry.value);
+    return Column(
+      children: [
+        for (var i = 0; i < sortedSold.length.clamp(0, 8); i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 26,
+                  child: Text(
+                    '#${i + 1}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AdminColors.muted,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        sortedSold[i].key,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AdminColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: total == 0 ? 0 : sortedSold[i].value / total,
+                          minHeight: 6,
+                          backgroundColor: AdminColors.canvas,
+                          color: AdminColors.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'x${sortedSold[i].value}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AdminColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _paymentMethods(Map<String, int> counts, Map<String, double> revenue) {
+    final methods = [
+      'cod',
+      'gcash',
+      'maya',
+      'card',
+    ].where((method) => counts[method] != null).toList();
+    if (methods.isEmpty) {
+      return const Text(
+        'No payment data yet.',
+        style: TextStyle(fontSize: 13, color: AdminColors.muted),
+      );
+    }
+    return Column(
+      children: [
+        for (final method in methods)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _methodLabel(method),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AdminColors.ink,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${counts[method]} orders',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AdminColors.muted,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  _formatCurrency(revenue[method] ?? 0),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AdminColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _revenueSummary(double totalRevenue) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _formatCurrency(totalRevenue),
+          style: const TextStyle(
+            fontSize: 32,
+            height: 1.1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.6,
+            color: AdminColors.ink,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Across every order recorded in the store.',
+          style: TextStyle(fontSize: 12, color: AdminColors.muted),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricCard(String label, String value, IconData icon, Color accent) {
     return Container(
       decoration: BoxDecoration(
         color: AdminColors.paper,

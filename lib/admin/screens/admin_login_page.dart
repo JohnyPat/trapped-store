@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:trapped_store/shared/constants/admin_constants.dart';
+
 import '../services/admin_auth_service.dart';
+import '../widgets/admin_breakpoints.dart';
+import '../widgets/admin_section_card.dart';
 
 /// Admin login page with email/password and admin check.
 class AdminLoginPage extends StatefulWidget {
@@ -41,10 +45,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       if (isAdmin) {
         // Navigate to dashboard
         if (!mounted) return;
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/admin/dashboard',
-          (route) => false,
-        );
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/admin/dashboard', (route) => false);
       } else {
         // Show error if not admin — include the signed-in UID so the
         // mismatch can be fixed in Firebase Console
@@ -63,9 +65,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     } catch (e) {
       if (!mounted) return;
       final message = e is AdminAuthException ? e.message : 'Login failed: $e';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -92,9 +93,9 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
             child: const Text('CANCEL'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_resetEmailController.text.trim()),
+            onPressed: () =>
+                Navigator.of(dialogContext)
+                    .pop(_resetEmailController.text.trim()),
             child: const Text('SEND LINK'),
           ),
         ],
@@ -109,90 +110,213 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send reset link: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not send reset link: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final desktop = AdminBreakpoints.isDesktop(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
+      backgroundColor: desktop ? AdminColors.canvas : null,
+      appBar: desktop ? null : AppBar(title: const Text('Admin Login')),
+      body: desktop ? _buildDesktopLogin() : _buildMobileLogin(),
+    );
+  }
+
+  // ── Mobile login (unchanged layout) ─────────────────────────────────
+
+  Widget _buildMobileLogin() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Admin Login',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 40),
+            _buildEmailField(),
+            const SizedBox(height: 16),
+            _buildPasswordField(),
+            const SizedBox(height: 24),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _signIn,
+                    child: const Text('Sign In'),
+                  ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: _showForgotPassword,
+              child: const Text('Forgot password?'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Desktop centered login card ─────────────────────────────────────
+
+  Widget _buildDesktopLogin() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AdminColors.ink,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  color: AdminColors.paper,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(height: 20),
               const Text(
-                'Admin Login',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                'Trapped Admin',
+                style: TextStyle(
+                  fontSize: 28,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: AdminColors.ink,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: _isPasswordVisible
-                      ? IconButton(
-                          icon: const Icon(Icons.visibility),
-                          onPressed: () {
-                            setState(() => _isPasswordVisible = false);
-                          },
-                        )
-                      : IconButton(
-                          icon: const Icon(Icons.visibility_off),
-                          onPressed: () {
-                            setState(() => _isPasswordVisible = true);
-                          },
-                        ),
-                ),
-                obscureText: !_isPasswordVisible,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
+              const SizedBox(height: 6),
+              const Text(
+                'Sign in to manage the store.',
+                style: TextStyle(fontSize: 14, color: AdminColors.muted),
               ),
               const SizedBox(height: 24),
-              _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: _signIn,
-                      child: const Text('Sign In'),
-                    ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _showForgotPassword,
-                child: const Text('Forgot password?'),
+              AdminSectionCard(
+                padding: const EdgeInsets.all(28),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildEmailField(),
+                      const SizedBox(height: 16),
+                      _buildPasswordField(),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _signIn,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AdminColors.ink,
+                            foregroundColor: AdminColors.paper,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Center(
+                        child: TextButton(
+                          onPressed: _isLoading ? null : _showForgotPassword,
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Admin access only',
+                style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                  color: AdminColors.muted,
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // ── Shared field builders ───────────────────────────────────────────
+
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      decoration: const InputDecoration(
+        labelText: 'Email',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.email),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your email';
+        }
+        if (!value.contains('@')) {
+          return 'Please enter a valid email';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      decoration: InputDecoration(
+        labelText: 'Password',
+        border: const OutlineInputBorder(),
+        prefixIcon: const Icon(Icons.lock),
+        suffixIcon: _isPasswordVisible
+            ? IconButton(
+                icon: const Icon(Icons.visibility),
+                onPressed: () {
+                  setState(() => _isPasswordVisible = false);
+                },
+              )
+            : IconButton(
+                icon: const Icon(Icons.visibility_off),
+                onPressed: () {
+                  setState(() => _isPasswordVisible = true);
+                },
+              ),
+      ),
+      obscureText: !_isPasswordVisible,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your password';
+        }
+        return null;
+      },
     );
   }
 }

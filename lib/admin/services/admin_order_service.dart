@@ -111,10 +111,13 @@ class AdminOrderService {
       updateMap['paymentStatus'] = paymentStatus;
     }
 
-    // Add to status history using push
+    // Add to status history using push. Keep both `at` (customer timeline)
+    // and `changedAt` (older admin entries) so every client can read it.
     await ref.child('statusHistory').push().set({
       'status': newStatus,
+      'at': now.millisecondsSinceEpoch,
       'changedAt': now.millisecondsSinceEpoch,
+      'note': 'Status updated by admin.',
     });
 
     await ref.update(updateMap);

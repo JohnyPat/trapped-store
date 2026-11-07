@@ -15,8 +15,7 @@ enum OrderStatus {
   final int step;
 
   bool get canCancel => this == pending || this == confirmed;
-  bool get isTerminal =>
-      this == delivered || this == cancelled;
+  bool get isTerminal => this == delivered || this == cancelled;
 
   static OrderStatus fromValue(String? value) {
     return OrderStatus.values.firstWhere(
@@ -187,7 +186,7 @@ class OrderStatusEvent {
     final data = asStringMap(map);
     return OrderStatusEvent(
       status: OrderStatus.fromValue(asString(data['status'])),
-      at: asDate(data['at']) ?? DateTime.now(),
+      at: asDate(data['at'] ?? data['changedAt']) ?? DateTime.now(),
       note: asString(data['note']),
     );
   }

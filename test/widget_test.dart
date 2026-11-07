@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trapped_store/admin/models/admin_order_model.dart';
 import 'package:trapped_store/models/app_user.dart';
 import 'package:trapped_store/models/product.dart';
 import 'package:trapped_store/utils/formatters.dart';
@@ -101,6 +102,27 @@ void main() {
       expect(product.sizes, ['S', 'M']);
       expect(product.inStock, isTrue);
       expect(product.active, isTrue);
+    });
+  });
+
+  group('AdminOrder', () {
+    test('uses the parent user id and delivery address as fallbacks', () {
+      final order = AdminOrder.fromMap('order-1', {
+        'orderNumber': 'TRP-1',
+        'subtotal': 600,
+        'shippingFee': 150,
+        'totalAmount': 750,
+        'paymentMethod': 'cod',
+        'paymentStatus': 'pending',
+        'orderStatus': 'pending',
+        'createdAt': 1793943765705,
+        'items': <dynamic>[],
+        'deliveryAddress': {'fullName': 'patrtick', 'email': 'jp@gmail.com'},
+      }, userId: 'uid-1');
+
+      expect(order.userId, 'uid-1');
+      expect(order.customerName, 'patrtick');
+      expect(order.customerEmail, 'jp@gmail.com');
     });
   });
 }

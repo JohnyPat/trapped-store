@@ -114,7 +114,11 @@ class AdminOrder {
     };
   }
 
-  factory AdminOrder.fromMap(String id, Map<String, dynamic> data) {
+  factory AdminOrder.fromMap(
+    String id,
+    Map<String, dynamic> data, {
+    String? userId,
+  }) {
     final now = DateTime.now();
     final List<OrderItem> parsedItems = [];
     for (final rawItem in asList(data['items'])) {
@@ -123,12 +127,21 @@ class AdminOrder {
       parsedItems.add(OrderItem.fromMap(item));
     }
 
+    final delivery = asStringMap(data['deliveryAddress']);
+    final storedUserId = asString(data['userId']).trim();
+    final storedName = asString(data['customerName']).trim();
+    final storedEmail = asString(data['customerEmail']).trim();
+
     return AdminOrder(
       id: id,
       orderNumber: data['orderNumber'] ?? '',
-      userId: data['userId'] ?? '',
-      customerName: data['customerName'] ?? '',
-      customerEmail: data['customerEmail'] ?? '',
+      userId: storedUserId.isNotEmpty ? storedUserId : (userId ?? ''),
+      customerName: storedName.isNotEmpty
+          ? storedName
+          : asString(delivery['fullName']),
+      customerEmail: storedEmail.isNotEmpty
+          ? storedEmail
+          : asString(delivery['email']),
       subtotal: (data['subtotal'] ?? 0).toDouble(),
       shippingFee: (data['shippingFee'] ?? 0).toDouble(),
       totalAmount: (data['totalAmount'] ?? 0).toDouble(),
@@ -180,10 +193,9 @@ class AdminOrder {
     }
   }
 
-  String get paymentMethodLabel =>
-      paymentMethod.toLowerCase() == 'cod'
-          ? 'Cash on Delivery'
-          : _capitalizeFirst(paymentMethod);
+  String get paymentMethodLabel => paymentMethod.toLowerCase() == 'cod'
+      ? 'Cash on Delivery'
+      : _capitalizeFirst(paymentMethod);
 
   String _capitalizeFirst(String s) =>
       s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}' : s;

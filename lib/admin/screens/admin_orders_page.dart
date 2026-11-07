@@ -81,18 +81,18 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order marked as ${_statusLabels[status] ?? status}')),
+        SnackBar(
+          content: Text('Order marked as ${_statusLabels[status] ?? status}'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update order: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to update order: $e')));
     }
   }
 
-  Future<void> _confirmStatusChange(
-      AdminOrder order, String newStatus) async {
+  Future<void> _confirmStatusChange(AdminOrder order, String newStatus) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -116,7 +116,10 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     if (confirmed == true) await _updateStatus(order, newStatus);
   }
 
-  void _openOrderDetails(AdminOrder order) {
+  void _openOrderDetails(AdminOrder initialOrder) {
+    final orderStream = initialOrder.userId.trim().isEmpty
+        ? null
+        : _orderService.watchOrder(initialOrder.userId, initialOrder.id);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -125,144 +128,184 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         initialChildSize: 0.75,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        builder: (context, scrollController) => StreamBuilder<AdminOrder?>(
+          stream: orderStream,
+          initialData: initialOrder,
+          builder: (context, snapshot) {
+            final order = snapshot.data ?? initialOrder;
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        order.orderNumber,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AdminColors.ink,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        color: _statusColor(order.orderStatus),
-                      ),
-                      child: Text(
-                        order.statusLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _timeAgo(order.createdAt),
-                  style: const TextStyle(color: AdminColors.muted),
-                ),
-                const Divider(height: 24),
-                const Text('CUSTOMER',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      color: AdminColors.muted,
-                    )),
-                const SizedBox(height: 4),
-                Text(order.customerName.isNotEmpty
-                    ? order.customerName
-                    : 'Unknown customer'),
-                if (order.customerEmail.isNotEmpty)
-                  Text(order.customerEmail,
-                      style: const TextStyle(color: AdminColors.muted)),
-                const SizedBox(height: 16),
-                const Text('ITEMS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      color: AdminColors.muted,
-                    )),
-                const SizedBox(height: 8),
-                ...order.items.map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
+                    Row(
                       children: [
-                        const Icon(Icons.checkroom,
-                            size: 18, color: AdminColors.muted),
-                        const SizedBox(width: 8),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(item.name),
-                              Text('SIZE ${item.size ?? '—'} · QTY ${item.quantity}',
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AdminColors.muted)),
-                            ],
+                          child: Text(
+                            order.orderNumber,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AdminColors.ink,
+                            ),
                           ),
                         ),
-                        Text(Formatters.currency(item.price),
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: _statusColor(order.orderStatus),
+                          ),
+                          child: Text(
+                            order.statusLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-                const Divider(height: 24),
-                _summaryRow('Subtotal',
-                    Formatters.currency(order.subtotal)),
-                _summaryRow('Shipping',
-                    order.shippingFee == 0
-                        ? 'FREE'
-                        : Formatters.currency(order.shippingFee)),
-                _summaryRow('TOTAL',
-                    Formatters.currency(order.totalAmount),
-                    bold: true),
-                const SizedBox(height: 16),
-                _summaryRow('Payment method',
-                    _paymentMethodLabel(order.paymentMethod)),
-                _summaryRow('Payment status',
-                    order.paymentStatus.replaceAll('_', ' ').toUpperCase()),
-                const SizedBox(height: 16),
-                const Text('UPDATE STATUS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                      color: AdminColors.muted,
-                    )),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final status in _statusFilters)
-                      if (status != 'all')
-                        ActionChip(
-                          label: Text(_statusLabels[status] ?? status),
-                          backgroundColor: order.orderStatus.toLowerCase() ==
-                                  status
-                              ? _statusColor(status)
-                              : AdminColors.canvas,
-                          labelStyle: TextStyle(
-                            color: order.orderStatus.toLowerCase() == status
-                                ? Colors.white
-                                : AdminColors.ink,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          onPressed: () => _confirmStatusChange(order, status),
+                    const SizedBox(height: 2),
+                    Text(
+                      _timeAgo(order.createdAt),
+                      style: const TextStyle(color: AdminColors.muted),
+                    ),
+                    const Divider(height: 24),
+                    const Text(
+                      'CUSTOMER',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                        color: AdminColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      order.customerName.isNotEmpty
+                          ? order.customerName
+                          : 'Unknown customer',
+                    ),
+                    if (order.customerEmail.isNotEmpty)
+                      Text(
+                        order.customerEmail,
+                        style: const TextStyle(color: AdminColors.muted),
+                      ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'ITEMS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                        color: AdminColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...order.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.checkroom,
+                              size: 18,
+                              color: AdminColors.muted,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.name),
+                                  Text(
+                                    'SIZE ${item.size ?? '—'} · QTY ${item.quantity}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AdminColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              Formatters.currency(item.price),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+                    const Divider(height: 24),
+                    _summaryRow(
+                      'Subtotal',
+                      Formatters.currency(order.subtotal),
+                    ),
+                    _summaryRow(
+                      'Shipping',
+                      order.shippingFee == 0
+                          ? 'FREE'
+                          : Formatters.currency(order.shippingFee),
+                    ),
+                    _summaryRow(
+                      'TOTAL',
+                      Formatters.currency(order.totalAmount),
+                      bold: true,
+                    ),
+                    const SizedBox(height: 16),
+                    _summaryRow(
+                      'Payment method',
+                      _paymentMethodLabel(order.paymentMethod),
+                    ),
+                    _summaryRow(
+                      'Payment status',
+                      order.paymentStatus.replaceAll('_', ' ').toUpperCase(),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'UPDATE STATUS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                        color: AdminColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final status in _statusFilters)
+                          if (status != 'all')
+                            ActionChip(
+                              label: Text(_statusLabels[status] ?? status),
+                              backgroundColor:
+                                  order.orderStatus.toLowerCase() == status
+                                  ? _statusColor(status)
+                                  : AdminColors.canvas,
+                              labelStyle: TextStyle(
+                                color: order.orderStatus.toLowerCase() == status
+                                    ? Colors.white
+                                    : AdminColors.ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              onPressed: () =>
+                                  _confirmStatusChange(order, status),
+                            ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -348,8 +391,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                         },
                       ),
               ),
-              onChanged: (v) =>
-                  setState(() => _query = v.trim().toLowerCase()),
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
             ),
           ),
           // Status filter chips
@@ -394,8 +436,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                 var orders = snapshot.data ?? <AdminOrder>[];
                 if (_filter != 'all') {
                   orders = orders
-                      .where((o) =>
-                          o.orderStatus.toLowerCase() == _filter)
+                      .where((o) => o.orderStatus.toLowerCase() == _filter)
                       .toList();
                 }
                 if (_query.isNotEmpty) {
@@ -420,11 +461,14 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     return Card(
                       color: AdminColors.paper,
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       child: ListTile(
-                        title: Text(order.orderNumber,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700)),
+                        title: Text(
+                          order.orderNumber,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         subtitle: Text(
                           '${order.customerName.isNotEmpty ? order.customerName : 'Unknown'}'
                           '\n${Formatters.currency(order.totalAmount)}'
@@ -437,7 +481,9 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: _statusColor(order.orderStatus),
                                 borderRadius: BorderRadius.circular(4),
@@ -452,8 +498,11 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Icon(Icons.chevron_right,
-                                size: 18, color: AdminColors.muted),
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: AdminColors.muted,
+                            ),
                           ],
                         ),
                         onTap: () => _openOrderDetails(order),

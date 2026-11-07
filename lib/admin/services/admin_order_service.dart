@@ -7,7 +7,7 @@ import '../models/admin_order_model.dart';
 /// Reads all customer orders and provides admin operations.
 class AdminOrderService {
   AdminOrderService({DatabaseService? database})
-      : _database = database ?? DatabaseService();
+    : _database = database ?? DatabaseService();
 
   final DatabaseService _database;
 
@@ -21,10 +21,13 @@ class AdminOrderService {
         if (userData is! Map) return;
         userData.forEach((orderId, orderData) {
           if (orderData is! Map) return;
-          allOrders.add(AdminOrder.fromMap(
-            orderId.toString(),
-            asStringMap(orderData),
-          ));
+          allOrders.add(
+            AdminOrder.fromMap(
+              orderId.toString(),
+              asStringMap(orderData),
+              userId: userId.toString(),
+            ),
+          );
         });
       });
       return allOrders..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -39,12 +42,8 @@ class AdminOrderService {
       return data.entries.map((entry) {
         final value = entry.value;
         if (value is! Map) return AdminOrder.empty(entry.key.toString());
-        return AdminOrder.fromMap(
-          entry.key.toString(),
-          asStringMap(value),
-        );
-      }).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return AdminOrder.fromMap(entry.key.toString(), asStringMap(value));
+      }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     });
   }
 
@@ -53,7 +52,16 @@ class AdminOrderService {
     final snapshot = await _database.orderRef(uid, orderId).get();
     final data = asStringMap(snapshot.value);
     if (data.isEmpty) return AdminOrder.empty(orderId);
-    return AdminOrder.fromMap(orderId, data);
+    return AdminOrder.fromMap(orderId, data, userId: uid);
+  }
+
+  /// Listen to a single order so the admin detail view stays in sync.
+  Stream<AdminOrder?> watchOrder(String uid, String orderId) {
+    return _database.orderRef(uid, orderId).onValue.map((event) {
+      final data = asStringMap(event.snapshot.value);
+      if (data.isEmpty) return null;
+      return AdminOrder.fromMap(orderId, data, userId: uid);
+    });
   }
 
   /// Search orders by status.
@@ -69,6 +77,7 @@ class AdminOrderService {
           final order = AdminOrder.fromMap(
             orderId.toString(),
             asStringMap(orderData),
+            userId: userId.toString(),
           );
           if (order.orderStatus.toLowerCase() == status.toLowerCase()) {
             results.add(order);
@@ -86,6 +95,11 @@ class AdminOrderService {
     required String newStatus,
     String? paymentStatus,
   }) async {
+    if (uid.trim().isEmpty || orderId.trim().isEmpty) {
+      throw StateError(
+        'Order is missing its customer reference. Refresh the list and try again.',
+      );
+    }
     final ref = _database.orderRef(uid, orderId);
     final now = DateTime.now();
 

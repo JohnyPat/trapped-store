@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -55,7 +59,6 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
 
   final _productService = AdminProductService();
   final _categoryService = AdminCategoryService();
-  final _storageService = StorageService();
   final _imagePicker = ImagePicker();
 
   String? _categoryId;
@@ -66,6 +69,11 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   bool _uploading = false;
   bool _loadingCategories = true;
   List<AdminCategory> _categories = [];
+
+  /// Bytes of the picked image shown instantly while the upload runs.
+  Uint8List? _localPreviewBytes;
+  String? _localPreviewContentType;
+  double _uploadProgress = 0;
 
   bool get _isEditing => widget.product != null;
 
@@ -159,8 +167,14 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     return _categoryId;
   }
 
-  /// Effective image for the preview/save: preset first, then the text field.
+  /// Effective image for the preview/save: instant local preview first,
+  /// then the preset, then the text field.
   String? get _effectiveImage {
+    final local = _localPreviewBytes;
+    if (local != null) {
+      final contentType = _localPreviewContentType ?? 'image/jpeg';
+      return 'data:$contentType;base64,${base64Encode(local)}';
+    }
     if (_selectedPreset != null && _imageUrl.text.trim().isEmpty) {
       return _selectedPreset;
     }
@@ -168,11 +182,48 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     return url.isEmpty ? null : url;
   }
 
-  /// Let the admin pick a photo (camera or gallery) and upload it to
-  /// Firebase Storage. The returned download URL is written into the
-  /// image field so it syncs like any other product image.
-  Future<void> _pickAndUploadImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
+  String _contentTypeForName(String name) {
+    final dot = name.lastIndexOf('.');
+    final extension = dot == -1 ? '.jpg' : name.substring(dot).toLowerCase();
+    switch (extension) {
+      case '.png':
+        return 'image/png';
+      case '.webp':
+        return 'image/webp';
+      case '.gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  Future<ImageSource?> _chooseImageSource() {
+    if (AdminBreakpoints.isDesktop(context)) {
+      return showDialog<ImageSource>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Upload image'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take a photo'),
+                onTap: () =>
+                    Navigator.of(dialogContext).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                onTap: () =>
+                    Navigator.of(dialogContext).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return showModalBottomSheet<ImageSource>(
       context: context,
       builder: (sheetContext) {
         return SafeArea(
@@ -195,42 +246,139 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
         );
       },
     );
+  }
+
+  /// Upload already-read image bytes to Firebase Storage.
+  ///
+  /// Falls back to a base64 data URL when the bucket is not provisioned,
+  /// so product photos still work without a billing account.
+  Future<String> _uploadBytesToStorage({
+    required String productId,
+    required Uint8List bytes,
+    required String fileName,
+    required ValueChanged<double> onProgress,
+  }) async {
+    final contentType = _contentTypeForName(fileName);
+    final dot = fileName.lastIndexOf('.');
+    final extension = dot == -1
+        ? '.jpg'
+        : fileName.substring(dot).toLowerCase();
+    try {
+      final ref = FirebaseStorage.instance.ref(
+        'products/$productId/product_${DateTime.now().millisecondsSinceEpoch}$extension',
+      );
+      final task = ref.putData(
+        bytes,
+        SettableMetadata(
+          contentType: contentType,
+          cacheControl: 'public, max-age=31536000',
+        ),
+      );
+      final subscription = task.snapshotEvents.listen((snapshot) {
+        if (snapshot.totalBytes > 0) {
+          onProgress(snapshot.bytesTransferred / snapshot.totalBytes);
+        }
+      });
+      try {
+        final snapshot = await task;
+        await subscription.cancel();
+        return await snapshot.ref.getDownloadURL();
+      } catch (error) {
+        await subscription.cancel();
+        rethrow;
+      }
+    } on FirebaseException catch (error) {
+      if (error.code == 'object-not-found' ||
+          error.code == 'bucket-not-found' ||
+          error.code == 'storage/unknown' ||
+          error.message?.toLowerCase().contains('bucket') == true) {
+        return 'data:$contentType;base64,${base64Encode(bytes)}';
+      }
+      if (error.code == 'unauthorized' || error.code == 'permission-denied') {
+        throw const StorageServiceException(
+          'Upload blocked by storage rules — sign in as the admin account.',
+        );
+      }
+      throw StorageServiceException(
+        error.message ?? 'The product photo could not be uploaded.',
+      );
+    }
+  }
+
+  /// Let the admin pick a photo (camera or gallery). The image is previewed
+  /// instantly and uploaded in the background, so the form stays responsive.
+  Future<void> _pickAndUploadImage() async {
+    final source = await _chooseImageSource();
     if (source == null) return;
 
-    setState(() => _uploading = true);
-    try {
-      final file = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
-      if (file == null) {
-        if (mounted) setState(() => _uploading = false);
-        return;
+    final file = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 70,
+    );
+    if (file == null) return;
+
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      if (mounted) {
+        AppSnack.error(context, 'The selected image is empty.');
       }
-      // New products have no id yet — use a timestamp-based folder.
-      final productKey =
-          widget.product?.id ?? 'new_${DateTime.now().millisecondsSinceEpoch}';
-      final url = await _storageService.uploadProductImage(
+      return;
+    }
+    if (bytes.length > 5 * 1024 * 1024) {
+      if (mounted) {
+        AppSnack.error(context, 'Please choose an image smaller than 5 MB.');
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    // Show the picked photo right away, then finish the upload behind the scenes.
+    setState(() {
+      _localPreviewBytes = bytes;
+      _localPreviewContentType = _contentTypeForName(file.name);
+      _selectedPreset = null;
+      _uploading = true;
+      _uploadProgress = 0;
+    });
+
+    // New products have no id yet — use a timestamp-based folder.
+    final productKey =
+        widget.product?.id ?? 'new_${DateTime.now().millisecondsSinceEpoch}';
+    try {
+      final url = await _uploadBytesToStorage(
         productId: productKey,
-        file: file,
+        bytes: bytes,
+        fileName: file.name,
+        onProgress: (value) {
+          if (mounted) setState(() => _uploadProgress = value);
+        },
       );
       if (!mounted) return;
       setState(() {
         _imageUrl.text = url;
         _selectedPreset = null;
+        _localPreviewBytes = null;
+        _localPreviewContentType = null;
         _uploading = false;
+        _uploadProgress = 0;
       });
       AppSnack.success(context, 'Photo uploaded — remember to SAVE.');
     } on StorageServiceException catch (error) {
       if (!mounted) return;
       AppSnack.error(context, error.message);
-      setState(() => _uploading = false);
+      setState(() {
+        _uploading = false;
+        _uploadProgress = 0;
+      });
     } catch (error) {
       if (!mounted) return;
       AppSnack.error(context, 'Upload failed: $error');
-      setState(() => _uploading = false);
+      setState(() {
+        _uploading = false;
+        _uploadProgress = 0;
+      });
     }
   }
 
@@ -268,60 +416,85 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   Widget _brokenImage() =>
       const Icon(Icons.image_not_supported, size: 48, color: AdminColors.muted);
 
-  /// Large live preview of the chosen image.
+  /// Large live preview of the chosen image. While an upload is in
+  /// progress the just-picked photo is shown from memory so there is no
+  /// waiting before the admin sees their image.
   Widget _buildImagePreview() {
+    final local = _localPreviewBytes;
     final effective = _effectiveImage;
+    Widget body;
+    if (local != null) {
+      body = Image.memory(local, fit: BoxFit.cover);
+    } else if (effective == null) {
+      body = Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 48,
+              color: AdminColors.muted,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose an image below',
+              style: TextStyle(color: AdminColors.muted, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    } else {
+      body = Stack(
+        fit: StackFit.expand,
+        children: [
+          _imageFor(effective, fit: BoxFit.cover),
+          if (_selectedPreset != null)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                color: AdminColors.ink,
+                child: const Text(
+                  'BUNDLED',
+                  style: TextStyle(
+                    color: AdminColors.paper,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Container(
         height: 180,
         width: double.infinity,
         color: AdminColors.canvas,
-        child: effective == null
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 48,
-                      color: AdminColors.muted,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Choose an image below',
-                      style: TextStyle(color: AdminColors.muted, fontSize: 12),
-                    ),
-                  ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            body,
+            if (_uploading)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: LinearProgressIndicator(
+                  value: _uploadProgress > 0 ? _uploadProgress : null,
+                  minHeight: 3,
+                  backgroundColor: AdminColors.line,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AdminColors.accent,
+                  ),
                 ),
-              )
-            : Stack(
-                fit: StackFit.expand,
-                children: [
-                  _imageFor(effective, fit: BoxFit.cover),
-                  if (_selectedPreset != null)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        color: AdminColors.ink,
-                        child: const Text(
-                          'BUNDLED',
-                          style: TextStyle(
-                            color: AdminColors.paper,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
               ),
+          ],
+        ),
       ),
     );
   }
@@ -769,6 +942,7 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
   }
 
   Widget _buildUploadButton() {
+    final percent = (_uploadProgress * 100).round();
     return OutlinedButton.icon(
       onPressed: _uploading ? null : _pickAndUploadImage,
       icon: _uploading
@@ -778,7 +952,11 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.cloud_upload_outlined, size: 18),
-      label: Text(_uploading ? 'UPLOADING…' : 'UPLOAD PHOTO'),
+      label: Text(
+        _uploading
+            ? (_uploadProgress > 0 ? 'UPLOADING… $percent%' : 'UPLOADING…')
+            : 'UPLOAD PHOTO',
+      ),
       style: OutlinedButton.styleFrom(
         foregroundColor: AdminColors.ink,
         side: const BorderSide(color: AdminColors.line),

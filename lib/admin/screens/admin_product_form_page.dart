@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
 import 'package:trapped_store/shared/constants/admin_constants.dart';
@@ -197,6 +198,34 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     }
   }
 
+  /// Decodes [bytes] and re-encodes them as a small JPEG (max 800px on the
+  /// longest edge, quality 70) so uploads stay fast on any connection.
+  /// Returns the original bytes when the image cannot be decoded (e.g.
+  /// animated GIF), along with the file name to upload as.
+  Future<(Uint8List bytes, String fileName)> _compressImageBytes(
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    if (_contentTypeForName(fileName) == 'image/gif') {
+      return (bytes, fileName);
+    }
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return (bytes, fileName);
+      final longest = decoded.width > decoded.height
+          ? decoded.width
+          : decoded.height;
+      final resized = longest > 800
+          ? img.copyResize(decoded, width: 800)
+          : decoded;
+      final encoded = img.encodeJpg(resized, quality: 70);
+      return (encoded, 'product.jpg');
+    } catch (_) {
+      // Fall through to the original bytes.
+    }
+    return (bytes, fileName);
+  }
+
   Future<ImageSource?> _chooseImageSource() {
     if (AdminBreakpoints.isDesktop(context)) {
       return showDialog<ImageSource>(
@@ -334,10 +363,16 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     }
     if (!mounted) return;
 
+    // Shrink the photo before uploading so it stays fast on any connection.
+    final (uploadBytes, uploadName) = await _compressImageBytes(
+      bytes,
+      file.name,
+    );
+
     // Show the picked photo right away, then finish the upload behind the scenes.
     setState(() {
-      _localPreviewBytes = bytes;
-      _localPreviewContentType = _contentTypeForName(file.name);
+      _localPreviewBytes = uploadBytes;
+      _localPreviewContentType = _contentTypeForName(uploadName);
       _selectedPreset = null;
       _uploading = true;
       _uploadProgress = 0;
@@ -349,8 +384,8 @@ class _AdminProductFormPageState extends State<AdminProductFormPage> {
     try {
       final url = await _uploadBytesToStorage(
         productId: productKey,
-        bytes: bytes,
-        fileName: file.name,
+        bytes: uploadBytes,
+        fileName: uploadName,
         onProgress: (value) {
           if (mounted) setState(() => _uploadProgress = value);
         },

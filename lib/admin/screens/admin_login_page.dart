@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:trapped_store/shared/constants/admin_constants.dart';
-
 import '../services/admin_auth_service.dart';
-import '../widgets/admin_breakpoints.dart';
-import '../widgets/admin_section_card.dart';
 
 /// Admin login page with email/password and admin check.
 class AdminLoginPage extends StatefulWidget {
@@ -118,154 +114,44 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final desktop = AdminBreakpoints.isDesktop(context);
     return Scaffold(
-      backgroundColor: desktop ? AdminColors.canvas : null,
-      appBar: desktop ? null : AppBar(title: const Text('Admin Login')),
-      body: desktop ? _buildDesktopLogin() : _buildMobileLogin(),
-    );
-  }
-
-  // ── Mobile login (centred and width-capped on wide windows) ─────────
-
-  Widget _buildMobileLogin() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Admin Login',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 40),
-                _buildEmailField(),
-                const SizedBox(height: 16),
-                _buildPasswordField(),
-                const SizedBox(height: 24),
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _signIn,
-                        child: const Text('Sign In'),
-                      ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: _showForgotPassword,
-                  child: const Text('Forgot password?'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Desktop centered login card ─────────────────────────────────────
-
-  Widget _buildDesktopLogin() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AdminColors.ink,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.lock_outline,
-                  color: AdminColors.paper,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Trapped Admin',
-                style: TextStyle(
-                  fontSize: 28,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: AdminColors.ink,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Sign in to manage the store.',
-                style: TextStyle(fontSize: 14, color: AdminColors.muted),
-              ),
-              const SizedBox(height: 24),
-              AdminSectionCard(
-                padding: const EdgeInsets.all(28),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildEmailField(),
-                      const SizedBox(height: 16),
-                      _buildPasswordField(),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 48,
-                        child: FilledButton(
-                          onPressed: _isLoading ? null : _signIn,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AdminColors.ink,
-                            foregroundColor: AdminColors.paper,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Sign In',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Center(
-                        child: TextButton(
-                          onPressed: _isLoading ? null : _showForgotPassword,
-                          child: const Text('Forgot password?'),
-                        ),
-                      ),
-                    ],
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Admin Login',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                ),
+                  const SizedBox(height: 40),
+                  _buildEmailField(),
+                  const SizedBox(height: 16),
+                  _buildPasswordField(),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _signIn,
+                            child: const Text('Sign In'),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: _showForgotPassword,
+                    child: const Text('Forgot password?'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Admin access only',
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 0.5,
-                  color: AdminColors.muted,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
